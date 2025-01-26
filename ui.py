@@ -42,7 +42,6 @@ def home():
     st.write("Selamat Datang di Halaman Konfigurasi Mikrotik")
 
     if st.session_state.koneksi:
-        st.write("Koneksi SSH Berhasil dipertahankan")
 
         # Bagian Ini Ntar Diganti
         stdin, stdout, stderr = st.session_state.koneksi.exec_command("system resource print")
