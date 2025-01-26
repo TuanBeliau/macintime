@@ -12,7 +12,7 @@ def login():
     st.title("MaCInTime, Make Connection In Time")
     st.subheader("Login ke Perangkat Mikrotik")
 
-    host = st.text_input("Masukkan IP Addess", "192.168.43.5")
+    host = st.text_input("Masukkan IP Addess", "192.168.88.1")
     username = st.text_input("Masukkan Username Mikrotik", value="admin")
     password = st.text_input("Masukkan Password", type="password")
     port = st.number_input("Port", 22, step=1)
