@@ -44,8 +44,10 @@ def home():
     if st.session_state.koneksi:
         st.write("Koneksi SSH Berhasil dipertahankan")
 
+        # Bagian Ini Ntar Diganti
         stdin, stdout, stderr = st.session_state.koneksi.exec_command("system resource print")
         st.text(stdout.read().decode())
+        # -----------------------
     else :
         st.error("Koneksi SSH tidak aktif")
 
