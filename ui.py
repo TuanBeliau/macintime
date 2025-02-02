@@ -94,7 +94,7 @@ def home():
                     st.error(f"Terjadi kesalahan saat memuat data pengguna: {e}")
                     return None
 
-            # Mengambil data baru
+            # Mengambil data baru 
             new_ips = IP()
             new_password = user()
 
