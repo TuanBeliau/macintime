@@ -13,7 +13,7 @@ def login():
     st.title("MaCInTime, Make Connection In Time")
     st.subheader("Login ke Perangkat Mikrotik")
 
-    host = st.text_input("Masukkan IP Addess", "192.168.43.5")
+    host = st.text_input("Masukkan IP Addess", "192.168.88.1")
     username = st.text_input("Masukkan Username Mikrotik", value="admin")
     password = st.text_input("Masukkan Password", value=1, type="password")
     port = st.number_input("Port", 22, step=1)
@@ -39,6 +39,20 @@ def login():
     st.button("Hubungkan", on_click=connect)
 
 def home():
+<<<<<<< HEAD
+=======
+    st.title("Halaman Konfigurasi")
+    st.write("Selamat Datang di Halaman Konfigurasi Mikrotik")
+
+    if st.session_state.koneksi:
+
+        # Bagian Ini Ntar Diganti
+        stdin, stdout, stderr = st.session_state.koneksi.exec_command("system resource print")
+        st.text(stdout.read().decode())
+        # -----------------------
+    else :
+        st.error("Koneksi SSH tidak aktif")
+>>>>>>> afe31d7bcb77f622f6e78081df076ed0c47a8593
 
     def logout() :
         if st.session_state.koneksi:
