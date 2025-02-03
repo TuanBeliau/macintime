@@ -39,8 +39,7 @@ def login():
     st.button("Hubungkan", on_click=connect)
 
 def home():
-<<<<<<< HEAD
-=======
+    
     st.title("Halaman Konfigurasi")
     st.write("Selamat Datang di Halaman Konfigurasi Mikrotik")
 
@@ -52,7 +51,6 @@ def home():
         # -----------------------
     else :
         st.error("Koneksi SSH tidak aktif")
->>>>>>> afe31d7bcb77f622f6e78081df076ed0c47a8593
 
     def logout() :
         if st.session_state.koneksi:
