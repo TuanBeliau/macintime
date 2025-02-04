@@ -75,7 +75,7 @@ def home():
                     new_ips = {}
 
                     for interface, address in ip_data:
-                        new_ips[interface] = st.text_input(f"IP Address untuk {interface} :", value=address, key=f"ip_{interface}")
+                        new_ips[interface] = st.text_input(f"IP Address untuk {interface} :", value=address)
                         
                     return new_ips
                 else:
@@ -160,3 +160,4 @@ if st.session_state.page == "login":
     login()
 elif st.session_state.page == "home":
     home()
+
