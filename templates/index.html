@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH MikroTik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold text-center text-blue-600 mb-4">SSH Connection to MikroTik</h2>
+        
+        <form method="POST" class="space-y-3">
+            <div>
+                <label class="block text-gray-700">IP Address:</label>
+                <input type="text" name="host" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-gray-700">Username:</label>
+                <input type="text" name="username" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-gray-700">Password:</label>
+                <input type="password" name="password" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-gray-700">Port:</label>
+                <input type="number" name="port" value="22" required class="w-full p-2 border rounded">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Connect</button>
+        </form>
+
+        {% if hasil %}
+        <h3 class="text-xl font-semibold text-gray-800 mt-6">Daftar IP Address:</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full bg-gray-50 border rounded mt-3">
+                <thead>
+                    <tr class="bg-blue-500 text-white">
+                        <th class="py-2 px-4">Interface</th>
+                        <th class="py-2 px-4">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ip in hasil %}
+                    <tr class="border-t">
+                        <td class="py-2 px-4">{{ ip.interface }}</td>
+                        <td class="py-2 px-4">{{ ip.address }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
