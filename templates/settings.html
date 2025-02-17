@@ -16,65 +16,67 @@
 </head>
 
 <body class="bg-zinc-800 flex items-center justify-center min-h-screen">
-    <!-- Button untuk membuka sidebar -->
-    <span class="absolute text-white text-4xl top-5 left-4 cursor-pointer lg:hidden" onclick="openSidebar()">
-        <i class="bi bi-filter-left px-2 bg-gray-900 rounded-md">=</i>
-    </span>
-    
+    <!-- Mobile menu button -->
+    <button type="button" class="lg:hidden fixed top-4 left-4 z-50 text-white" onclick="toggleSidebar()">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
     <!-- Sidebar -->
-    <div class="sidebar fixed top-0 bottom-0 lg:left-0 p-2 w-[300px] overflow-y-auto text-center bg-zinc-700 lg:block hidden">
-        <div class="text-gray-100 text-xl">
-            <div class="p-2 mt-1 flex items-center">
-                <img src="https://i.ibb.co.com/rKZMMngJ/Green-Mint-globalnet-technology-Logo-200-x-200-piksel.png" alt="logo" width="200" height="200" class="block mx-auto">
-                <i class="bi bi-x cursor-pointer lg:hidden ml-28" onclick="openSidebar()"></i>
+    <div id="sidebar"
+        class="fixed top-0 left-0 h-full w-64 bg-zinc-700 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-40">
+        <div class="flex flex-col h-full">
+            <!-- Logo -->
+            <div class="p-4">
+                <img src="https://i.ibb.co.com/rKZMMngJ/Green-Mint-globalnet-technology-Logo-200-x-200-piksel.png"
+                    alt="logo" class="w-32 h-32 mx-auto">
             </div>
-            <div class="my-2 bg-gray-600 h-[1px]"></div>
-        </div>
-        <a href="{{ url_for('dashboard') }}" class="p-2 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-amber-400 text-white">
-            <span class="text-[15px] ml-4 text-gray-200 font-medium">
-                Home
-            </span>
-        </a>     
-        <a href="{{ url_for('settings') }}" class="p-2 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-amber-400 text-white">
-            <span class="text-[15px] ml-4 text-gray-200 font-medium">
-                Settings
-            </span>
-        </a>        
-        <div class="my-4 bg-gray-600 h-[1px]"></div>
-        <a href="{{ url_for('logout') }}" class="p-2 mt-3 flex items-center rounded-md px-4 duration-300 cursor-pointer hover:bg-red-600 text-white">
-            <i class="bi bi-box-arrow-in-right"></i>
-            <span class="text-[15px] ml-4 text-gray-200 font-medium">
-                Logout
-            </span>
-        </a>        
-    </div>
 
-    <script type="text/javascript">
-        // Fungsi untuk membuka dan menutup sidebar
-        function openSidebar() {
-            document.querySelector(".sidebar").classList.toggle("hidden");
-        }
-        
-        // Fungsi untuk menampilkan submenu dropdown
-        function dropdown() {
-            document.querySelector("#submenu").classList.toggle("hidden");
-            document.querySelector("#arrow").classList.toggle("rotate-0");
-        }
-    </script>
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="#" class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
+                    Home
+                </a>
+                <a href="{{ url_for('settings') }}"
+                    class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
+                    Settings
+                </a>
+            </nav>
 
-
-    <div
-        class="bg-zinc-700 p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md sm:max-w-96 md:max-w-[500px] lg:max-w-[600px]">
-        <h2 class="text-2xl font-medium text-center text-amber-400 mb-4">Settings</h2>
-
-        <h3 class="text-lg text-white font-semibold mt-6 text-center">IP Address</h3>
-        <div class="overflow-x-auto">
-            <label for="host" class="block font-medium text-white">Host / IP Address</label>
-            <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                <input type="text" name="host" class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="192.168.88.1">
+            <!-- Logout button -->
+            <div class="p-4">
+                <a href="{{ url_for('logout') }}"
+                    class="block w-full px-4 py-2 text-center rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors">
+                    Logout
+                </a>
             </div>
         </div>
     </div>
+
+
+    <div class="lg:ml-64 p-4 min-h-screen flex items-center justify-center">
+        <div class="bg-zinc-700 p-6 rounded-lg shadow-lg w-xl max-w-4xl">
+            <h2 class="text-2xl font-medium text-center text-amber-400 mb-4">Settings</h2>
+
+            <h3 class="text-lg text-white font-semibold mt-6 text-center">IP Address</h3>
+            <div class="overflow-x-auto">
+                <label for="host" class="block font-medium text-white">Host / IP Address</label>
+                <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                    <input type="text" name="host"
+                        class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                        placeholder="192.168.88.1">
+                </div>
+
+            </div>
+        </div>
+
+        <script>
+            function toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.toggle('-translate-x-full');
+            }
+        </script>
 </body>
 
 </html>
