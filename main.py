@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import paramiko
-import uuid  # Untuk membuat user_id unik
+import uuid
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Ganti dengan key yang lebih aman untuk session
@@ -37,7 +37,6 @@ def get_ip_addresses():
     if not session.get("logged_in"):
         return [{"interface": "Error", "address": "Not logged in"}]
 
-    # Ambil user_id dari session
     user_id = session.get("user_id")
     ssh = ssh_connections.get(user_id)
     
@@ -60,6 +59,29 @@ def get_ip_addresses():
     except Exception as e:
         return [{"interface": "Error", "address": f"Unknown Error: {e}"}]
 
+def delete_ip(interface):
+    """Menghapus IP berdasarkan interface"""
+    if not session.get("logged_in"):
+        return "Tidak ada koneksi yang aktif"
+
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+    
+    if not ssh:
+        return "Tidak ada koneksi SSH aktif"
+
+    try:
+        # Hapus IP Address berdasarkan interface
+        command = f"ip address remove [find interface={interface}]"
+        stdin, stdout, stderr = ssh.exec_command(command)
+        stderr_output = stderr.read().decode()
+
+        if stderr_output:
+            return f"Error saat menghapus IP: {stderr_output}"
+        return "IP Address berhasil dihapus"
+    except Exception as e:
+        return f"Error: {e}"
+
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -70,19 +92,29 @@ def login():
 
         result = ssh_connect(host, username, password, port)
         if result is True:
-            return redirect(url_for("dashboard"))  # Redirect ke dashboard jika login berhasil
+            return redirect(url_for("dashboard"))
         else:
-            return render_template("login.html", error=result)  # Tampilkan pesan error jika gagal
+            return render_template("login.html", error=result)
 
     return render_template("login.html")
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=["GET"])
 def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
     ip_list = get_ip_addresses()
     return render_template("dashboard.html", host=session["host"], ip_list=ip_list)
+
+@app.route("/delete_ip/<interface>", methods=["POST"])
+def delete_ip_route(interface):
+    """Menghapus IP berdasarkan interface"""
+    result = delete_ip(interface)
+    if result == "IP Address berhasil dihapus":
+        return redirect(url_for("dashboard"))
+    else:
+        return render_template("dashboard.html", host=session["host"], ip_list=get_ip_addresses(), error=result)
+
 
 @app.route("/logout")
 def logout():
