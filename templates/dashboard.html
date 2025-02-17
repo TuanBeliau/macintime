@@ -75,6 +75,7 @@
                     <tr class="bg-gray-200">
                         <th class="border px-4 py-2">Interface</th>
                         <th class="border px-4 py-2">IP Address</th>
+                        <th class="border px-4 py-2">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,6 +83,11 @@
                     <tr class="bg-white">
                         <td class="border px-4 py-2">{{ ip.interface }}</td>
                         <td class="border px-4 py-2">{{ ip.address }}</td>
+                        <td class="border px-4 py-2">
+                            <form action="{{ url_for('delete_ip_route', interface=ip.interface) }}" method="POST">
+                                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded">Hapus</button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
