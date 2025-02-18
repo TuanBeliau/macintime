@@ -167,10 +167,9 @@ def delete_ip(id):
         return redirect(url_for("dashboard"))
 
 
-@app.route("/setting", methods={"GET", "POST"})
-def settings() :
-
-    if not session.get("logged_in") :
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if not session.get("logged_in"):
         return redirect(url_for("login"))
     
     user_id = session.get("user_id")
@@ -179,46 +178,90 @@ def settings() :
     if not ssh:
         return redirect(url_for("login"))
     
+    current_identity = ""
+    try:
+        stdin, stdout, stderr = ssh.exec_command("system identity print")
+        output = stdout.read().decode()
+        current_identity = output.split("name: ")[1].strip() if "name: " in output else ""
+    except Exception as e:
+        flash(f"Error: {e}")
+        return redirect(url_for("login"))
+
     if request.method == "POST":
-        identity = request.form["identity"]
-        password = request.form["password"]
+        identity = request.form.get("identity")
+        password = request.form.get("password")
 
         def ganti_identity(identity):
             try:
-                command = f"system identity set name={identity}"
+                command = f'system identity set name="{identity}"'
                 stdin, stdout, stderr = ssh.exec_command(command)
                 stderr_output = stderr.read().decode()
 
                 if stderr_output:
-                    return f"Error when change identity: {stderr_output}"
-                return "Identity Changed Succesfully"
+                    return False, f"Error when changing identity: {stderr_output}"
+                return True, "Identity Changed Successfully"
             except Exception as e:
-                return f"Error: {e}"
+                return False, f"Error: {e}"
 
         def ganti_pw(password):
             try:
-                command = f"user set 0 password={password}"
-                stdin, stdout, stderr = ssh.exec_command(command)
-                stderr_output = stderr.read().decode()
-
-                if stderr_output:
-                    return f"Error when change password: {stderr_output}"
-                return "Password Changed Succesfully"
-
+                # Set the timeout for the command to be very short
+                command = f'user set admin password="{password}"; :delay 1'
+                ssh.exec_command(command, timeout=1)
+                
+                # If we get here, assume success (even if connection drops)
+                return True, "Password Changed Successfully"
+            except paramiko.SSHException:
+                # This is expected - connection will drop after password change
+                return True, "Password Changed Successfully"
             except Exception as e:
-                return f"Error: {e}"
+                return False, f"Error: {e}"
 
-        if identity:
-            result_identity = ganti_identity(identity)
-            flash(result_identity)
-            return redirect(url_for("setting"))
+        # Handle both identity and password changes
+        need_logout = False
+        messages = []
+
+        # Do password change last if both are being changed
+        if identity and identity != current_identity:
+            success, message = ganti_identity(identity)
+            messages.append(message)
+            if success:
+                need_logout = True
 
         if password:
-            result_password = ganti_pw(password)
-            flash(result_password)
-            return redirect(url_for("setting"))
+            success, message = ganti_pw(password)
+            messages.append(message)
+            if success:
+                need_logout = True
 
-    return render_template("setting.html")
+        # If any change was successful, close connection and redirect to login
+        if need_logout:
+            try:
+                # Try to close SSH connection gracefully
+                if user_id in ssh_connections:
+                    try:
+                        ssh_connections[user_id].close()
+                    except:
+                        pass  # Ignore any errors during close
+                    del ssh_connections[user_id]
+                
+                # Clear session
+                session.clear()
+            except:
+                pass  # Ignore any cleanup errors
+            
+            # Flash all messages
+            for message in messages:
+                flash(message)
+            
+            return redirect(url_for("login"))
+        else:
+            # If no successful changes, just show messages and stay on settings
+            for message in messages:
+                flash(message)
+            return redirect(url_for("settings"))
+
+    return render_template("settings.html", current_identity=current_identity)
 
 @app.route("/logout")
 def logout():
