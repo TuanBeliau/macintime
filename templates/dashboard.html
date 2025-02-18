@@ -65,6 +65,7 @@
                         <tr>
                             <th class="px-2 sm:px-4 py-2 text-left text-sm">Interface</th>
                             <th class="px-2 sm:px-4 py-2 text-left text-sm">IP Address</th>
+                            <th class="px-2 sm:px-4 py-2 text-center text-sm">Status</th>
                             <th class="px-2 sm:px-4 py-2 text-center text-sm">Actions</th>
                         </tr>
                     </thead>
@@ -73,9 +74,11 @@
                         <tr class="border-t">
                             <td class="px-2 sm:px-4 py-2 text-sm">{{ ip.interface }}</td>
                             <td class="px-2 sm:px-4 py-2 text-sm">{{ ip.address }}</td>
-                            <td class="px-2 sm:px-4 py-2 text-center">
-                                <form action="{{ url_for('delete_ip_route', interface=ip.interface) }}" method="POST">
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-4 py-1 rounded-md text-sm transition-colors">
+                            <td class="px-2 sm:px-4 py-2 text-sm">{{ ip.status }}</td> 
+                            <td class="px-2 sm:px-4 py-2 text-sm text-center">
+                                <form action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
+                                    <button type="submit" class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700v {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
+                                    {% if ip.status == "dynamic" %} disabled {% endif %}>
                                         Hapus
                                     </button>
                                 </form>
