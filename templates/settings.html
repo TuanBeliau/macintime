@@ -15,7 +15,7 @@
     </style>
 </head>
 
-<body class="bg-zinc-800 flex items-center justify-center min-h-screen">
+<body class="bg-zinc-800">
     <!-- Mobile menu button -->
     <button type="button" class="lg:hidden fixed top-4 left-4 z-50 text-white" onclick="toggleSidebar()">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@
 
             <!-- Navigation -->
             <nav class="flex-1 px-4 space-y-2">
-                <a href="#" class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
+                <a href="{{ url_for('dashboard') }}" class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
                     Home
                 </a>
                 <a href="{{ url_for('settings') }}"
@@ -55,9 +55,9 @@
     </div>
 
 
-    <div class="lg:ml-64 p-4 min-h-screen flex items-center justify-center">
+    <div class="lg:ml-64 p-2 sm:p-4 min-h-screen flex items-center justify-center">
         <div class="bg-zinc-700 p-6 rounded-lg shadow-lg w-xl max-w-4xl">
-            <h2 class="text-2xl font-medium text-center text-amber-400 mb-4">Settings</h2>
+            <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Settings</h2>
 
             <h3 class="text-lg text-white font-semibold mt-6 text-center">IP Address</h3>
             <div class="overflow-x-auto">
