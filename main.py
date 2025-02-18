@@ -100,6 +100,42 @@ def dashboard():
 
     return render_template("dashboard.html", host=session["host"], ip_list=ip_list)
 
+# Masih belum tau bisa enggak
+@app.route('/ubah_ip/<id>', methods=["POST"])
+def change_ip(id):
+
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+        
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if not ssh:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        address = request.form['address'] # Nanti di buat form
+        interface = request.form['interface']
+
+        def change():
+            try:
+                command = f"ip address set [find .id={id}] address={address} interface={interface}"
+                stdin, stdout, stderr = ssh.exec_command(command)
+                stderr_output = stderr.read().decode()
+
+                if stderr_output:
+                    return f"Error when change IP: {stderr_output}"
+                return "IP Address Change Succesfully"
+            except Exception as e:
+                return f"Error: {e}"
+
+        result = change(address, interface, id)
+        if result == "IP Address Change Succesfully":
+            return redirect(url_for("dashboard"))
+        else:
+            return redirect(url_for("dashboard"))
+
+
 @app.route('/delete_ip/<id>', methods=["POST"])
 def delete_ip(id):
 
