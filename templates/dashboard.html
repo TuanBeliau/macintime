@@ -51,31 +51,31 @@
     </div>
 
     <!-- Main content -->
-    <div class="lg:ml-64 p-4 min-h-screen flex items-center justify-center">
-        <div class="bg-zinc-700 p-6 rounded-lg shadow-lg w-xl max-w-4xl">
-            <h2 class="text-2xl font-medium text-center text-amber-400 mb-4">Dashboard</h2>
+    <div class="lg:ml-64 p-2 sm:p-4 min-h-screen flex items-center justify-center">
+        <div class="bg-zinc-700 p-3 sm:p-6 rounded-lg shadow-lg w-xl max-w-4xl">
+            <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Dashboard</h2>
 
-            <p class="text-center text-white">Berhasil masuk ke MikroTik dengan IP:</p>
-            <p class="text-center font-semibold text-lg text-white mb-6">{{ host }}</p>
+            <p class="text-center text-white text-sm sm:text-base">Berhasil masuk ke MikroTik dengan IP:</p>
+            <p class="text-center font-semibold text-base sm:text-lg text-white mb-6">{{ host }}</p>
 
-            <h3 class="text-lg text-white font-semibold mt-6 text-center">Daftar IP Address</h3>
+            <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar IP Address</h3>
             <div class="overflow-x-auto mt-4">
-                <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                <table class="w-full bg-white rounded-lg overflow-hidden">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-4 py-2 text-left">Interface</th>
-                            <th class="px-4 py-2 text-left">IP Address</th>
-                            <th class="px-4 py-2 text-center">Actions</th>
+                            <th class="px-2 sm:px-4 py-2 text-left text-sm">Interface</th>
+                            <th class="px-2 sm:px-4 py-2 text-left text-sm">IP Address</th>
+                            <th class="px-2 sm:px-4 py-2 text-center text-sm">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for ip in ip_list %}
                         <tr class="border-t">
-                            <td class="px-4 py-2">{{ ip.interface }}</td>
-                            <td class="px-4 py-2">{{ ip.address }}</td>
-                            <td class="px-4 py-2 text-center">
+                            <td class="px-2 sm:px-4 py-2 text-sm">{{ ip.interface }}</td>
+                            <td class="px-2 sm:px-4 py-2 text-sm">{{ ip.address }}</td>
+                            <td class="px-2 sm:px-4 py-2 text-center">
                                 <form action="{{ url_for('delete_ip_route', interface=ip.interface) }}" method="POST">
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-md text-sm transition-colors">
+                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-4 py-1 rounded-md text-sm transition-colors">
                                         Hapus
                                     </button>
                                 </form>
