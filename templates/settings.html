@@ -57,18 +57,41 @@
 
     <div class="lg:ml-64 p-2 sm:p-4 min-h-screen flex items-center justify-center">
         <div class="bg-zinc-700 p-6 rounded-lg shadow-lg w-xl max-w-4xl">
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
             <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Settings</h2>
 
             <h3 class="text-lg text-white font-semibold mt-6 text-center">IP Address</h3>
-            <div class="overflow-x-auto">
-                <label for="host" class="block font-medium text-white">Host / IP Address</label>
-                <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                    <input type="text" name="host"
-                        class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm"
-                        placeholder="192.168.88.1">
+            <form method="POST">
+                <div class="overflow-x-auto">
+                    <label for="host" class="block font-medium text-white">Identity</label>
+                    <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                        <input type="text" name="identity"
+                            class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
+                    </div>
                 </div>
-
-            </div>
+                <div class="overflow-x-auto mt-3">
+                    <label for="password" class="block font-medium text-white">Ganti Password Admin</label>
+                    <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                        <input type="password" name="password"
+                            class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="bg-amber-400 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition-colors">
+                        Save
+                    </button>
+                </div>
+            </form>
         </div>
 
         <script>
