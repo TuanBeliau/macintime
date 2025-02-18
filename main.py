@@ -115,6 +115,16 @@ def delete_ip_route(interface):
     else:
         return render_template("dashboard.html", host=session["host"], ip_list=get_ip_addresses(), error=result)
 
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+        
+    if request.method == "POST":
+        # Handle settings form submission here
+        pass
+        
+    return render_template("settings.html", host=session.get("host"))
 
 @app.route("/logout")
 def logout():
