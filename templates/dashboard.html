@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
@@ -28,7 +29,7 @@
         <div class="flex flex-col h-full">
             <!-- Logo -->
             <div class="p-4">
-                <img src="https://i.ibb.co.com/rKZMMngJ/Green-Mint-globalnet-technology-Logo-200-x-200-piksel.png" alt="logo" class="w-32 h-32 mx-auto">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" class="w-32 h-32 mx-auto">
             </div>
             
             <!-- Navigation -->
@@ -36,9 +37,28 @@
                 <a href="{{ url_for('dashboard') }}" class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
                     Home
                 </a>
-                <a href="{{ url_for('settings') }}" class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
-                    Settings
-                </a>
+                
+                <!-- Dropdown Menu -->
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center justify-between w-full px-4 py-2 text-white hover:bg-amber-400 rounded-md transition-colors">
+                        <span>Settings</span>
+                        <svg class="w-4 h-4 transition-transform " :class="{'rotate-180': open}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    
+                    <div x-show="open" @click.away="open = false" class="px-2 py-2 mt-2 space-y-2 bg-zinc-600 rounded-md">
+                        <a href="{{ url_for('settings') }}" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            System Settings
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            DHCP Setup
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            Change Bandwidth
+                        </a>
+                    </div>
+                </div>
             </nav>
             
             <!-- Logout button -->
