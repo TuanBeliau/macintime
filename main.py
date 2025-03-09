@@ -119,7 +119,7 @@ def add_ip():
     if not ssh:
         return redirect(url_for("login"))
 
-    if request.methods == "POST":
+    if request.method == "POST":
         address = request.form["address"]
         interface = request.form["interface"]
 
