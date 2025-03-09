@@ -285,11 +285,11 @@ def dhcp():
 
         gateway = ip_address.split("/")[0]
         prefix = ip_address.split("/")[1]
-        base_ip = ".".join(gateway.split("."[:-1])) # Memotong oktet ke-4
+        base_ip = gateway.rsplit(".", 1)[0] # Memotong oktet ke-4
         cek_ip = gateway.split(".")[3] # Ambil oktet ke-4
 
         # Cek apakah oktet ke-4 .1/.254
-        if cek_ip == 1 :
+        if cek_ip == "1" :
             pool_start = f"{base_ip}.2"
             pool_end = f"{base_ip}.{pool_range + 1}"
         else:
@@ -301,26 +301,32 @@ def dhcp():
         try:
             command = f"/ip address print where address~'{gateway}'"
             stdin, stdout, stderr = ssh.exec_command(command)
-            output = stdin.read().decode()
+            output = stdout.read().decode()
             error = stderr.read().decode()
 
             if "ether" in output:
                 interface = [word for word in output.split() if "ether" in word][0]
                 return interface
-
-            if error:
-                return "Error kak (flash nyusul kang)"
-            
-            return "interface not found"
+            elif error:
+                return "interface not found"
         except Exception as e:
             return "my bad maybe {e}"
 
         # Membuat command CLI
-        command = [
+        command_main = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
             f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={time} disabled=no"
         ]
+
+        try:
+            for cmd in command_main:
+                ssh.exec_command(cmd)
+            return redirect(url_for("dashboard"))
+        except Exception as e:
+            return f"My bad maybe, dunno {e}"
+        
+    return render_template("DHCP.html")
     
 
 @app.route("/logout")
