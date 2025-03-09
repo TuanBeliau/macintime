@@ -109,8 +109,8 @@ def dashboard():
     return render_template("dashboard.html", host=session["host"], ip_list=ip_list, interfaces=interface_all)
 
 @app.route("/add_ip", methods=["POST"])
-def add_ip(address, interface):
-    if not session.get("logged_id"):
+def add_ip():
+    if not session.get("logged_in"):
         return redirect(url_for("login"))
     
     user_id = session.get("user_id")
@@ -130,6 +130,8 @@ def add_ip(address, interface):
              
             if stderr_output:
                 return f"Erorr when add IP: {stderr_output}"
+
+            return redirect(url_for("dashboard"))
         except Exception as e:
             return f"error occured : {e}"
 
