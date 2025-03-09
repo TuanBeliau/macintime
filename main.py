@@ -264,7 +264,7 @@ def settings() :
 
     return render_template("setting.html", current_identity=current_identity)
 
-@app.route("/DHCP-Server")
+@app.route("/DHCP-Server", methods={"GET", "POST"})
 def dhcp():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -272,17 +272,34 @@ def dhcp():
     user_id = session.get("user_id")
     ssh = ssh_connections.get(user_id)
 
+    if not ssh:
+        return redirect(url_for("login"))
+
+    try:
+        command_ip = "/ip address print detail"
+        stdin, stdout, stderr = ssh.exec_command(command_ip)
+        output = stdout.read().decode()
+
+        addresses_all = []
+        for line in output.splitlines():
+            if "address" in line :
+                address = line.split("address=")[1].split()[0]
+                cek_oktet = address.split("/")[0].split(".")[3]
+                if cek_oktet == "1" or cek_oktet == "254" :
+                    addresses_all.append(address)
+
+    except Exception as e:
+        return render_template("DHCP.html")
+
     if request.method == "POST": # Code Di bawah akan jalan jika terdeteksi method post
         name = request.form["name"]
         ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
         pool_range = int(request.form["pool_range"]) # Range IP
-        time = request.form["time"] # time lease perlu, default 10 menit
 
-        if not gateway and pool_range <=0:
+        if not ip_address or pool_range <=0:
             return "Input tidak valid"
         
-        pool_name = f"dhcp_pool_{int(time.time())}"
-
+        pool_name = f"dhcp_pool_{int(time.time())}" # Memberi nama unik untuk tiap pool_ip
         gateway = ip_address.split("/")[0]
         prefix = ip_address.split("/")[1]
         base_ip = gateway.rsplit(".", 1)[0] # Memotong oktet ke-4
@@ -299,24 +316,31 @@ def dhcp():
         pool_range = f"{pool_start}-{pool_end}"
 
         try:
-            command = f"/ip address print where address~'{gateway}'"
-            stdin, stdout, stderr = ssh.exec_command(command)
+            command_interface = f'/ip address print where address~"{gateway}"'
+            stdin, stdout, stderr = ssh.exec_command(command_interface)
             output = stdout.read().decode()
-            error = stderr.read().decode()
 
-            if "ether" in output:
-                interface = [word for word in output.split() if "ether" in word][0]
-                return interface
-            elif error:
-                return "interface not found"
+            interface = None
+            for line in output.splitlines():
+                hasil_output = line.split()
+                for kata in hasil_output:
+                    if kata.startswith("ether"):
+                        interface = kata
+                        break
+                if interface:
+                    break
+            
+            if not interface:
+                return "flash nyusul"
+
         except Exception as e:
-            return "my bad maybe {e}"
+            return f"my bad maybe {e}"
 
         # Membuat command CLI
         command_main = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={time} disabled=no"
+            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} disabled=no"
         ]
 
         try:
@@ -326,7 +350,7 @@ def dhcp():
         except Exception as e:
             return f"My bad maybe, dunno {e}"
         
-    return render_template("DHCP.html")
+    return render_template("DHCP.html", ip_address=addresses_all)
     
 
 @app.route("/logout")
