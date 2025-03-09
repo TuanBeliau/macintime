@@ -272,14 +272,56 @@ def dhcp():
     user_id = session.get("user_id")
     ssh = ssh_connections.get(user_id)
 
-    if request.method == "POST":
-        ip_pool = request.form["ip_pool"]
+    if request.method == "POST": # Code Di bawah akan jalan jika terdeteksi method post
+        name = request.form["name"]
+        ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
+        pool_range = int(request.form["pool_range"]) # Range IP
+        time = request.form["time"] # time lease perlu, default 10 menit
 
-        def dhcp_setup():
-            try:
-                ada
-            except Exception as e:
-                return f"Error: {e}"
+        if not gateway and pool_range <=0:
+            return "Input tidak valid"
+        
+        pool_name = f"dhcp_pool_{int(time.time())}"
+
+        gateway = ip_address.split("/")[0]
+        prefix = ip_address.split("/")[1]
+        base_ip = ".".join(gateway.split("."[:-1])) # Memotong oktet ke-4
+        cek_ip = gateway.split(".")[3] # Ambil oktet ke-4
+
+        # Cek apakah oktet ke-4 .1/.254
+        if cek_ip == 1 :
+            pool_start = f"{base_ip}.2"
+            pool_end = f"{base_ip}.{pool_range + 1}"
+        else:
+            pool_start = f"{base_ip}.1"
+            pool_end = f"{base_ip}.{pool_range}"
+
+        pool_range = f"{pool_start}-{pool_end}"
+
+        try:
+            command = f"/ip address print where address~'{gateway}'"
+            stdin, stdout, stderr = ssh.exec_command(command)
+            output = stdin.read().decode()
+            error = stderr.read().decode()
+
+            if "ether" in output:
+                interface = [word for word in output.split() if "ether" in word][0]
+                return interface
+
+            if error:
+                return "Error kak (flash nyusul kang)"
+            
+            return "interface not found"
+        except Exception as e:
+            return "my bad maybe {e}"
+
+        # Membuat command CLI
+        command = [
+            f"/ip pool add name={pool_name} ranges={pool_range}",
+            f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
+            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={time} disabled=no"
+        ]
+    
 
 @app.route("/logout")
 def logout():
