@@ -59,14 +59,23 @@ def login() :
 def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if not ssh:
+        return redirect(url_for("login"))
+
+    stdin, stdout, stderr = ssh.exec_command("interface print detail")
+    output = stdout.read().decode()
+
+    interface_all = []
+    for line in output.splitlines():
+        if "name" in line:
+            name = line.split("name=")[1].split()[0].strip('"')
+            interface_all.append(name)
     
     def show_ip():
-        user_id = session.get("user_id")
-        ssh = ssh_connections.get(user_id)
-
-        if not ssh:
-            return [{"interface": "Error", "address": "Tidak ada koneksi SSH"}]
-
         try:
             stdin, stdout, stderr = ssh.exec_command("ip address print detail")
             output = stdout.read().decode()
@@ -79,7 +88,7 @@ def dashboard():
                     flag = parts[1] # Mengambil nilai index ke 1 dari list parts alias statusnya, misal D
                     ip_id = parts[0] # Sama seperti di atas namun ini untuk id
                     
-                    address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") 
+                    address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") # Next membuat perulangan lebih singkat. Di sini akan mengambil nilai addres= (ini index 0)
                     interface = next((part.split("interface=")[1] for part in parts if "interface=" in part), "Unknown")
                     status = "dynamic" if "D" in flag else "static"
 
@@ -95,46 +104,34 @@ def dashboard():
         except Exception as e:
             return [{"interface": "Error", "address": str(e)}]
 
-
     ip_list = show_ip()
 
-    return render_template("dashboard.html", host=session["host"], ip_list=ip_list)
+    return render_template("dashboard.html", host=session["host"], ip_list=ip_list, interfaces=interface_all)
 
-# Masih belum tau bisa enggak
-@app.route('/ubah_ip/<id>', methods=["POST"])
-def change_ip(id):
-
-    if not session.get("logged_in"):
+@app.route("/add_ip", methods=["POST"])
+def add_ip(address, interface):
+    if not session.get("logged_id"):
         return redirect(url_for("login"))
-        
+    
     user_id = session.get("user_id")
     ssh = ssh_connections.get(user_id)
 
     if not ssh:
         return redirect(url_for("login"))
 
-    if request.method == "POST":
-        address = request.form['address'] # Nanti di buat form
-        interface = request.form['interface']
+    if request.methods == "POST":
+        address = request.form["address"]
+        interface = request.form["interface"]
 
-        def change():
-            try:
-                command = f"ip address set [find .id={id}] address={address} interface={interface}"
-                stdin, stdout, stderr = ssh.exec_command(command)
-                stderr_output = stderr.read().decode()
-
-                if stderr_output:
-                    return f"Error when change IP: {stderr_output}"
-                return "IP Address Change Succesfully"
-            except Exception as e:
-                return f"Error: {e}"
-
-        result = change(address, interface, id)
-        if result == "IP Address Change Succesfully":
-            return redirect(url_for("dashboard"))
-        else:
-            return redirect(url_for("dashboard"))
-
+        try :
+            command = f"ip address add address={address} interface={interface}"
+            stdin, stdout, stderr = ssh.exec_command(command)
+            stderr_output = stderr.read().decode()
+             
+            if stderr_output:
+                return f"Erorr when add IP: {stderr_output}"
+        except Exception as e:
+            return f"error occured : {e}"
 
 @app.route('/delete_ip/<id>', methods=["POST"])
 def delete_ip(id):
@@ -155,7 +152,7 @@ def delete_ip(id):
             stderr_output = stderr.read().decode()
 
             if stderr_output:
-                return f"Error saat mengahapus IP: {stderr_output}"
+                return f"Error when delete IP: {stderr_output}"
             return "IP Address Deleted Succesfully"
         except Exception as e:
             return f"Error: {e}"
@@ -166,10 +163,47 @@ def delete_ip(id):
     else:
         return redirect(url_for("dashboard"))
 
+@app.route('/change_ip/<id>', methods=["POST"])
+def change_ip(id):
 
-@app.route("/settings", methods=["GET", "POST"])
-def settings():
     if not session.get("logged_in"):
+        return redirect(url_for("login"))
+        
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if not ssh:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        address = request.form['address'] # Nanti di buat form
+        prefix = int(request.form['prefix']) 
+        interface = request.form['interface']
+
+        def change(address, prefix, interface, id):
+            try:
+                command = f"ip address set {id} address={address}/{prefix} interface={interface}"
+                stdin, stdout, stderr = ssh.exec_command(command)
+                stderr_output = stderr.read().decode()
+
+                if stderr_output:
+                    return f"Error when change IP: {stderr_output}"
+                return "IP Address Change Succesfully"
+            except Exception as e:
+                return f"Error: {e}"
+
+        result = change(address, prefix, interface, id)
+        if result == "IP Address Change Succesfully":
+            return redirect(url_for("dashboard"))
+        else:
+            return redirect(url_for("dashboard"))
+    
+    return render_template("test.html")
+
+@app.route("/settings", methods={"GET", "POST"})
+def settings() :
+
+    if not session.get("logged_in") :
         return redirect(url_for("login"))
     
     user_id = session.get("user_id")
@@ -178,90 +212,72 @@ def settings():
     if not ssh:
         return redirect(url_for("login"))
     
-    current_identity = ""
-    try:
-        stdin, stdout, stderr = ssh.exec_command("system identity print")
-        output = stdout.read().decode()
-        current_identity = output.split("name: ")[1].strip() if "name: " in output else ""
-    except Exception as e:
-        flash(f"Error: {e}")
-        return redirect(url_for("login"))
-
+    stdin, stdout, stderr = ssh.exec_command("system identity print")
+    output = stdout.read().decode()
+    current_identity = output.strip().split(": ")[1] if ": " in output else "Uknown"
+    
     if request.method == "POST":
-        identity = request.form.get("identity")
-        password = request.form.get("password")
+        identity = request.form["identity"]
+        password = request.form["password"]
 
         def ganti_identity(identity):
             try:
-                command = f'system identity set name="{identity}"'
+                command = f"system identity set name={identity}"
                 stdin, stdout, stderr = ssh.exec_command(command)
                 stderr_output = stderr.read().decode()
 
                 if stderr_output:
-                    return False, f"Error when changing identity: {stderr_output}"
-                return True, "Identity Changed Successfully"
+                    return f"Error when change identity: {stderr_output}"
+                return "Identity Changed Succesfully"
             except Exception as e:
-                return False, f"Error: {e}"
+                return f"Error: {e}"
 
         def ganti_pw(password):
             try:
-                # Set the timeout for the command to be very short
-                command = f'user set admin password="{password}"; :delay 1'
-                ssh.exec_command(command, timeout=1)
-                
-                # If we get here, assume success (even if connection drops)
-                return True, "Password Changed Successfully"
-            except paramiko.SSHException:
-                # This is expected - connection will drop after password change
-                return True, "Password Changed Successfully"
-            except Exception as e:
-                return False, f"Error: {e}"
+                command = f"user set 0 password={password}"
+                stdin, stdout, stderr = ssh.exec_command(command)
+                stderr_output = stderr.read().decode()
 
-        # Handle both identity and password changes
-        need_logout = False
+                if stderr_output:
+                    return f"Error when change password: {stderr_output}"
+                return "Password Changed Succesfully"
+
+            except Exception as e:
+                return f"Error: {e}"
+
+        
         messages = []
 
-        # Do password change last if both are being changed
-        if identity and identity != current_identity:
-            success, message = ganti_identity(identity)
-            messages.append(message)
-            if success:
-                need_logout = True
+        if identity:
+            messages.append(ganti_identity(identity))
 
         if password:
-            success, message = ganti_pw(password)
-            messages.append(message)
-            if success:
-                need_logout = True
+            messages.append(ganti_pw(password))
 
-        # If any change was successful, close connection and redirect to login
-        if need_logout:
+        for msg in messages:
+            flash(msg)
+
+        return redirect(url_for("settings"))
+
+
+    return render_template("setting.html", current_identity=current_identity)
+
+@app.route("/DHCP-Server")
+def dhcp():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if request.method == "POST":
+        ip_pool = request.form["ip_pool"]
+
+        def dhcp_setup():
             try:
-                # Try to close SSH connection gracefully
-                if user_id in ssh_connections:
-                    try:
-                        ssh_connections[user_id].close()
-                    except:
-                        pass  # Ignore any errors during close
-                    del ssh_connections[user_id]
-                
-                # Clear session
-                session.clear()
-            except:
-                pass  # Ignore any cleanup errors
-            
-            # Flash all messages
-            for message in messages:
-                flash(message)
-            
-            return redirect(url_for("login"))
-        else:
-            # If no successful changes, just show messages and stay on settings
-            for message in messages:
-                flash(message)
-            return redirect(url_for("settings"))
-
-    return render_template("settings.html", current_identity=current_identity)
+                ada
+            except Exception as e:
+                return f"Error: {e}"
 
 @app.route("/logout")
 def logout():
