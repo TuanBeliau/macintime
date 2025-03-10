@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+]from flask import Flask, request, render_template, redirect, url_for, flash, session
 import paramiko
 import uuid
 import time
@@ -303,6 +303,28 @@ def dhcp():
                     interfaces_all.append({"address" : address, "interface" : interface})                   
     except Exception as e:
         interface_all = [{"interface": "Tidak ada interface yang cocok"}]
+    
+    try:
+        stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server lease print")
+        output = stdout.read().decode().splitlines()
+
+        dhcp = []
+        for line in output:
+            parts = line.split()
+            if len(parts) >= 5 and parts[0].isdigit():  # Pastikan ini baris data, bukan header
+                ip_id, flag, address, mac_address, hostname = parts[:5]
+
+                status = "otomatis" if "D" in flag else "tidak aktif" if "X" in flag else "static"
+
+                dhcp.append({
+                    "ip_id": ip_id,
+                    "address": address,
+                    "hostname": hostname,
+                    "status": status
+                })
+
+    except Exception as e:
+        return {"error": str(e)}
 
     if request.method == "POST": # Code Di bawah akan jalan jika terdeteksi method post
         name = request.form["name"]
@@ -376,7 +398,7 @@ def dhcp():
         except Exception as e:
             return f"My bad maybe, dunno {e}"
         
-    return render_template("DHCP.html", ip_address=interfaces_all)
+    return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp)
 
 # -------------------------------------------
 
