@@ -301,6 +301,7 @@ def dhcp():
         name = request.form["name"]
         ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
         pool_range = int(request.form["pool_range"]) # Range IP
+        lease_time = int(request.form["lease-time"]) # Lease time
 
         if not ip_address or pool_range <=0:
             return "Input tidak valid"
@@ -346,7 +347,7 @@ def dhcp():
         command_main = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} disabled=no"
+            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
         ]
 
         try:
