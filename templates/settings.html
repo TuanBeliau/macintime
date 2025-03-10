@@ -46,15 +46,23 @@
                         </svg>
                     </button>
                     
-                    <div x-show="open" @click.away="open = false" class="px-2 py-2 mt-2 space-y-2 bg-zinc-600 rounded-md">
-                        <a href="{{ url_for('settings') }}" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                    <div x-show="open" @click.away="open = false"
+                        class="px-2 py-2 mt-2 space-y-2 bg-zinc-600 rounded-md">
+                        <a href="{{ url_for('settings') }}"
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             System Settings
                         </a>
-                        <a href="#" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                        <a href="{{ url_for('dhcp') }}"
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             DHCP Setup
                         </a>
-                        <a href="#" class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                        <a href="#"
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Change Bandwidth
+                        </a>
+                        <a href="#"
+                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                        NAT Settings
                         </a>
                     </div>
                 </div>

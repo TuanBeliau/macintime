@@ -70,6 +70,10 @@
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Change Bandwidth
                         </a>
+                        <a href="#"
+                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                        NAT Settings
+                        </a>
                     </div>
                 </div>
             </nav>
@@ -156,56 +160,15 @@
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.status }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm text-center">
                                 <form action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
-                                    <div x-data="{ open: false }">
-                                        <!-- Tombol Ubah -->
-                                        <button type="button" @click="open = true"
-                                            class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
-                                            {% if ip.status=="dynamic" %} disabled {% endif %}>
-                                            Ubah
-                                        </button>
-
-                                        <!-- Modal -->
-                                        <div x-show="open"
-                                            class="fixed inset-0 bg-black bg-opacity-50 flex justify-centeritems-center z-50">
-                                            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                                                <h2 class="text-lg font-semibold mb-4">Edit IP Address</h2>
-                                                <form action="{{ url_for('change_ip', id=ip.id) }}" method="POST">
-                                                    <!-- Input Text -->
-                                                    <div>
-                                                        <label class="block text-sm font-medium text-gray-700">IP
-                                                            Address</label>
-                                                        <input name="address" type="text"
-                                                            class="w-[272px] border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-                                                            placeholder="Masukkan IP Address">
-                                                        /
-                                                        <input name="prefix" type="number"
-                                                            class="w-[50px] border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                                                    </div>
-
-                                                    <!-- Select Option -->
-                                                    <label
-                                                        class="block text-sm font-medium text-gray-700">Interface</label>
-                                                    <select name="interface"
-                                                        class="w-full border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                                                        <option default>{{ ip.interface }}</option>
-                                                        {% for ip in interfaces %}
-                                                        <option value="{{ ip }}" required>{{ ip }}</option>
-                                                        {% endfor %}
-                                                    </select>
-
-                                                    <!-- Tombol Save & Close -->
-                                                    <div class="flex justify-end space-x-2">
-                                                        <button type="button" @click="open = false"
-                                                            class="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">Batal</button>
-                                                        <button type="submit"
-                                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <!-- Replace modal with button that triggers SweetAlert -->
+                                    <button type="button"
+                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
+                                        {% if ip.status=="dynamic" %} disabled {% endif %}
+                                        onclick="showEditModal('{{ ip.id }}', '{{ ip.interface }}')">
+                                        Ubah
+                                    </button>
                                     <button type="submit"
-                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700v {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors"
+                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors"
                                         {% if ip.status=="dynamic" %} disabled {% endif %}>
                                         Hapus
                                     </button>
@@ -243,6 +206,41 @@
                 });
             });
         });
+
+        function showEditModal(id, interface) {
+            Swal.fire({
+                fontFamily: "Inter",
+                title: 'Edit IP Address',
+                background: '#3f3f46',
+                color: '#ffffff',
+                html: `
+                    <form id="editForm" action="{{ url_for('change_ip', id='') }}/${id}" method="POST">
+                        <label class="block text-sm font-medium text-gray-700">IP Address</label>
+                        <input name="address" type="text"
+                            class="w-[272px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            placeholder="Masukkan IP Address">
+                        /
+                        <input name="prefix" type="number"
+                            class="w-[50px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm" placeholder="24">
+                        <label class="block text-sm font-medium text-gray-700">Interface</label>
+                        <select name="interface"
+                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none">
+                            <option default>${interface}</option>
+                            {% for ip in interfaces %}
+                            <option value="{{ ip }}" required>{{ ip }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                confirmButtonColor: '#43A047', // amber-500
+                cancelButtonColor: '#ef4444', // red-500
+                preConfirm: () => {
+                    document.getElementById('editForm').submit();
+                }
+            });
+        }
     </script>
 </body>
 
