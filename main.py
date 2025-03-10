@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, session
 import paramiko
 import uuid
+import time
 
 app = Flask(__name__)
 app.secret_key = "apalah"
@@ -37,6 +38,7 @@ def ssh_connect(host, username, password, port):
 
 @app.route("/", methods=["GET", "POST"])
 def login() :
+    berhasil = None
     error = session.pop("error", None)
 
     # Jika ada form di kirim dengan method POST 
@@ -49,14 +51,15 @@ def login() :
         # Memanggil def ssh_connect di awal dan mengirimkan variable di atas
         result = ssh_connect(host, username, password, port)
         if result is True:
-            return redirect(url_for("dashboard"))
+            berhasil = True
         else:
             return redirect(url_for("login"))
     
-    return render_template("login.html", error=error)
+    return render_template("login.html", error=error, berhasil=berhasil)
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
+    berhasil = None
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
@@ -66,7 +69,9 @@ def dashboard():
     if not ssh:
         return redirect(url_for("login"))
 
-    stdin, stdout, stderr = ssh.exec_command("interface print detail")
+    berhasil = True
+
+    stdin, stdout, stderr = ssh.exec_command("/interface print detail")
     output = stdout.read().decode()
 
     interface_all = []
@@ -77,7 +82,7 @@ def dashboard():
     
     def show_ip():
         try:
-            stdin, stdout, stderr = ssh.exec_command("ip address print detail")
+            stdin, stdout, stderr = ssh.exec_command("/ip address print detail")
             output = stdout.read().decode()
 
             ip_data = []
@@ -88,7 +93,7 @@ def dashboard():
                     flag = parts[1] # Mengambil nilai index ke 1 dari list parts alias statusnya, misal D
                     ip_id = parts[0] # Sama seperti di atas namun ini untuk id
                     
-                    address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") # Next membuat perulangan lebih singkat. Di sini akan mengambil nilai addres= (ini index 0)
+                    address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") # Next membuat perulangan lebih singkat. Di sini akan mengambil nilai address= (ini index 0)
                     interface = next((part.split("interface=")[1] for part in parts if "interface=" in part), "Unknown")
                     status = "dynamic" if "D" in flag else "static"
 
@@ -106,7 +111,7 @@ def dashboard():
 
     ip_list = show_ip()
 
-    return render_template("dashboard.html", host=session["host"], ip_list=ip_list, interfaces=interface_all)
+    return render_template("dashboard.html", host=session["host"], ip_list=ip_list, interfaces=interface_all, berhasil=berhasil)
 
 @app.route("/add_ip", methods=["POST"])
 def add_ip():
@@ -121,10 +126,11 @@ def add_ip():
 
     if request.method == "POST":
         address = request.form["address"]
+        prefix = int(request.form["prefix"])
         interface = request.form["interface"]
 
         try :
-            command = f"ip address add address={address} interface={interface}"
+            command = f"/ip address add address={address}/{prefix} interface={interface}"
             stdin, stdout, stderr = ssh.exec_command(command)
             stderr_output = stderr.read().decode()
              
@@ -149,7 +155,7 @@ def delete_ip(id):
             return redirect(url_for('login'))
         
         try:
-            command = f"ip address remove {id}"
+            command = f"/ip address remove {id}"
             stdin, stdout, stderr = ssh.exec_command(command)
             stderr_output = stderr.read().decode()
 
@@ -184,7 +190,7 @@ def change_ip(id):
 
         def change(address, prefix, interface, id):
             try:
-                command = f"ip address set {id} address={address}/{prefix} interface={interface}"
+                command = f"/ip address set {id} address={address}/{prefix} interface={interface}"
                 stdin, stdout, stderr = ssh.exec_command(command)
                 stderr_output = stderr.read().decode()
 
@@ -214,7 +220,7 @@ def settings() :
     if not ssh:
         return redirect(url_for("login"))
     
-    stdin, stdout, stderr = ssh.exec_command("system identity print")
+    stdin, stdout, stderr = ssh.exec_command("/system identity print")
     output = stdout.read().decode()
     current_identity = output.strip().split(": ")[1] if ": " in output else "Uknown"
     
@@ -224,7 +230,7 @@ def settings() :
 
         def ganti_identity(identity):
             try:
-                command = f"system identity set name={identity}"
+                command = f"/system identity set name={identity}"
                 stdin, stdout, stderr = ssh.exec_command(command)
                 stderr_output = stderr.read().decode()
 
@@ -295,6 +301,7 @@ def dhcp():
         name = request.form["name"]
         ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
         pool_range = int(request.form["pool_range"]) # Range IP
+        lease_time = int(request.form["lease_time"]) # Lease time
 
         if not ip_address or pool_range <=0:
             return "Input tidak valid"
@@ -340,7 +347,7 @@ def dhcp():
         command_main = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} disabled=no"
+            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
         ]
 
         try:
@@ -351,7 +358,6 @@ def dhcp():
             return f"My bad maybe, dunno {e}"
         
     return render_template("DHCP.html", ip_address=addresses_all)
-    
 
 @app.route("/logout")
 def logout():
