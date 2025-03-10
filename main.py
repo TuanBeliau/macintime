@@ -347,7 +347,7 @@ def dhcp():
         command_main = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
+            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={lease_time}d disabled=no"
         ]
 
         try:
