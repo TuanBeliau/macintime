@@ -57,6 +57,7 @@ def login() :
     
     return render_template("login.html", error=error, berhasil=berhasil)
 
+# Bagian Dashboard
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     berhasil = None
@@ -95,7 +96,7 @@ def dashboard():
                     
                     address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") # Next membuat perulangan lebih singkat. Di sini akan mengambil nilai address= (ini index 0)
                     interface = next((part.split("interface=")[1] for part in parts if "interface=" in part), "Unknown")
-                    status = "dynamic" if "D" in flag else "static"
+                    status = "otomatis" if "D" in flag else "tidak aktif" if "X" in flag else "static"
 
                     ip_data.append({
                         "id": ip_id,
@@ -208,6 +209,10 @@ def change_ip(id):
     
     return render_template("test.html")
 
+# -------------------------------------------
+
+# Bagian Setting
+
 @app.route("/settings", methods={"GET", "POST"})
 def settings() :
 
@@ -281,32 +286,36 @@ def dhcp():
     if not ssh:
         return redirect(url_for("login"))
 
+    error = session.pop("error", None) # Menghapus error jika ada
+
     try:
         command_ip = "/ip address print detail"
         stdin, stdout, stderr = ssh.exec_command(command_ip)
         output = stdout.read().decode()
 
-        addresses_all = []
+        interfaces_all = []
         for line in output.splitlines():
             if "address" in line :
                 address = line.split("address=")[1].split()[0]
+                interface = line.split("interface=")[1].split()[0]
                 cek_oktet = address.split("/")[0].split(".")[3]
                 if cek_oktet == "1" or cek_oktet == "254" :
-                    addresses_all.append(address)
-
+                    interfaces_all.append({"address" : address, "interface" : interface})                   
     except Exception as e:
-        return render_template("DHCP.html")
+        interface_all = [{"interface": "Tidak ada interface yang cocok"}]
 
     if request.method == "POST": # Code Di bawah akan jalan jika terdeteksi method post
         name = request.form["name"]
+        password = request.form["password"]
         ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
         pool_range = int(request.form["pool_range"]) # Range IP
-        lease_time = int(request.form["lease-time"]) # Lease time
+        lease_time = int(request.form["lease_time"]) # Lease time
 
         if not ip_address or pool_range <=0:
             return "Input tidak valid"
         
         pool_name = f"dhcp_pool_{int(time.time())}" # Memberi nama unik untuk tiap pool_ip
+        name_dhcp = f"dhcp_{int(time.time())}" # Memberi nama unik untuk tiap dhcp server
         gateway = ip_address.split("/")[0]
         prefix = ip_address.split("/")[1]
         base_ip = gateway.rsplit(".", 1)[0] # Memotong oktet ke-4
@@ -338,26 +347,40 @@ def dhcp():
                     break
             
             if not interface:
-                return "flash nyusul"
+                return "Gagal mendapatkan interface"
 
         except Exception as e:
             return f"my bad maybe {e}"
 
         # Membuat command CLI
-        command_main = [
+        command_dhcp = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
+            f"/ip dhcp-server add name={name_dhcp} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
+        ]
+
+        command_wireless = [
+            f"/interface wireless set {interface} mode=ap-bridge ssid={name} frequency=2412 band=2ghz-b/g/n disabled=no",
+            f"/interface wireless security-profiles add name=my_{name} authentication-types=wpa2-psk wpa2-pre-shared-key={password}"
+            f"/interface wireless set {interface} security-profile=my_{name}"
         ]
 
         try:
-            for cmd in command_main:
-                ssh.exec_command(cmd)
+            for cmd in command_dhcp:
+                stdin, stdout, stderr = ssh.exec_command(cmd)
+                
+            for cmd in command_wireless:
+                stdin, stdout, stderr = ssh.exec_command(cmd)
+
             return redirect(url_for("dashboard"))
         except Exception as e:
             return f"My bad maybe, dunno {e}"
         
-    return render_template("DHCP.html", ip_address=addresses_all)
+    return render_template("DHCP.html", ip_address=interfaces_all)
+
+# -------------------------------------------
+
+# Bagian Logout
 
 @app.route("/logout")
 def logout():
@@ -374,6 +397,8 @@ def logout():
     # Menghapus session
     session.clear()
     return redirect(url_for("login"))
+
+# -------------------------------------------
 
 if __name__ == "__main__":
     app.run(debug=True)
