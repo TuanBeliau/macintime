@@ -20,23 +20,23 @@
         
         <form id="loginForm" method="POST" class="space-y-3" onsubmit="return handleSubmit(event)">
             <label for="host" class="block font-medium text-white">Host / IP Address</label>
-            <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                <input type="text" name="host" class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="192.168.88.1">
+            <div class="relative items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                <input type="text" name="host" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="192.168.88.1">
             </div>
 
             <label for="username" class="block font-medium text-white">Username</label>
             <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                <input type="text" name="username" class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="admin">
+                <input type="text" name="username" class="w-full p-2 text-base rounded-md placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="admin">
             </div>
 
             <label for="password" class="block font-medium text-white">Password</label>
             <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                <input type="password" name="password" class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
+                <input type="password" name="password" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
             </div>
 
             <label for="port" class="block font-medium text-white">Port</label>
             <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                <input type="number" name="port" class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="22">
+                <input type="number" name="port" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="22">
             </div>
             <button type="submit" class="w-full bg-blue-600 text-white p-2 mt-4 rounded hover:bg-blue-700">Connect</button>
         </form>
@@ -45,11 +45,25 @@
     <script>
         Swal.fire({
             fontFamily: "Inter",
-            theme: 'dark',
             icon: 'error',
             title: 'Connection Failed',
             text: '{{ error }}',
             confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            location.reload();
+        });
+    </script>
+    {% endif %}
+    {% if berhasil %}
+    <script>
+        Swal.fire({
+            fontFamily: "Inter",
+            icon: 'success',
+            title: 'Connection Success',
+            text: 'Berhasil Login!',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            window.location.href = "{{ url_for('dashboard') }}";
         });
     </script>
     {% endif %}
