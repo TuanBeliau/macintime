@@ -39,12 +39,11 @@
             <!-- Navigation -->
             <nav class="flex-1 px-4 space-y-2">
                 <a href="{{ url_for('dashboard') }}"
-                    class="block px-4 py-2 rounded-md text-white {% if request.path == url_for('dashboard') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} transition-colors">
+                    class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
                     Home
                 </a>
 
-                <!-- Dropdown Menu -->
-                <div class="relative" x-data="{ open: false }">
+                <div class="relative" x-data="{ open: true }">
                     <button @click="open = !open"
                         class="flex items-center justify-between w-full px-4 py-2 text-white hover:bg-amber-400 rounded-md transition-colors">
                         <span>Settings</span>
@@ -71,8 +70,8 @@
                             Change Bandwidth
                         </a>
                         <a href="{{ url_for('nat') }}"
-                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                        NAT Settings
+                            class="block px-4 py-2 text-sm text-white {% if request.path == url_for('nat') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
+                            NAT Settings
                         </a>
                     </div>
                 </div>
@@ -91,17 +90,9 @@
     <!-- Main content -->
     <div class="lg:ml-64 p-2 sm:p-4 min-h-screen flex items-center justify-center">
         <div class="bg-zinc-700 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl mx-2">
-            <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Dashboard</h2>
+            <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">NAT Settings</h2>
 
-            <p class="text-center text-white text-sm sm:text-base">Berhasil masuk ke MikroTik dengan IP:</p>
-            <p class="text-center font-semibold text-base sm:text-lg text-white mb-6">{{ host }}</p>
-            <div class="overflow-x-auto mt-3">
-                <label for="password" class="block font-medium text-white">Tambah IP Address</label>
-                <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                    <input type="text" name="xx"
-                        class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
-                </div>
-            </div>
+            <h3 class="text-lg text-white font-semibold mt-6 text-center">Settings</h3>
 
             <!-- Dropdown button and menu -->
             <div class="mt-3">
@@ -141,44 +132,6 @@
                     Tambah
                 </button>
             </div>
-            <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar IP Address</h3>
-            <div class="overflow-x-auto mt-4">
-                <table class="w-full bg-white rounded-lg overflow-hidden">
-                    <thead class="bg-amber-400">
-                        <tr>
-                            <th class="px-1 sm:px-4 py-2 text-left text-xs sm:text-sm">Interface</th>
-                            <th class="px-1 sm:px-4 py-2 text-left text-xs sm:text-sm">IP Address</th>
-                            <th class="px-1 sm:px-4 py-2 text-center text-xs sm:text-sm">Status</th>
-                            <th class="px-1 sm:px-4 py-2 text-center text-xs sm:text-sm">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ip in ip_list %}
-                        <tr class="border-t">
-                            <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.interface }}</td>
-                            <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.address }}</td>
-                            <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.status }}</td>
-                            <td class="px-1 sm:px-4 py-2 text-sm text-center">
-                                <form action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
-                                    <!-- Replace modal with button that triggers SweetAlert -->
-                                    <button type="button"
-                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
-                                        {% if ip.status=="dynamic" %} disabled {% endif %}
-                                        onclick="showEditModal('{{ ip.id }}', '{{ ip.interface }}')">
-                                        Ubah
-                                    </button>
-                                    <button type="submit"
-                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors"
-                                        {% if ip.status=="dynamic" %} disabled {% endif %}>
-                                        Hapus
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 
@@ -206,41 +159,6 @@
                 });
             });
         });
-
-        function showEditModal(id, interface) {
-            Swal.fire({
-                fontFamily: "Inter",
-                title: 'Edit IP Address',
-                background: '#3f3f46',
-                color: '#ffffff',
-                html: `
-                    <form id="editForm" action="{{ url_for('change_ip', id='') }}/${id}" method="POST">
-                        <label class="block text-sm font-medium text-gray-700">IP Address</label>
-                        <input name="address" type="text"
-                            class="w-[272px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            placeholder="Masukkan IP Address">
-                        /
-                        <input name="prefix" type="number"
-                            class="w-[50px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm" placeholder="24">
-                        <label class="block text-sm font-medium text-gray-700">Interface</label>
-                        <select name="interface"
-                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none">
-                            <option default>${interface}</option>
-                            {% for ip in interfaces %}
-                            <option value="{{ ip }}" required>{{ ip }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                confirmButtonColor: '#43A047', // amber-500
-                cancelButtonColor: '#ef4444', // red-500
-                preConfirm: () => {
-                    document.getElementById('editForm').submit();
-                }
-            });
-        }
     </script>
 </body>
 

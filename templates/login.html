@@ -4,35 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SSH MikroTik</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+        body {
+            font-family: "Inter", serif;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 class="text-2xl font-bold text-center text-blue-600 mb-4">SSH Connection to MikroTik</h2>
+<body class="bg-zinc-800 flex items-center justify-center min-h-screen">
+    <div class="bg-zinc-700 p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md sm:max-w-96 md:max-w-[500px] lg:max-w-[600px]">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" width="200" height="200" class="block mx-auto">
         
-        <form method="POST" class="space-y-3">
-            <div>
-                <label class="block text-gray-700">IP Address:</label>
-                <input type="text" name="host" required class="w-full p-2 border rounded">
+        <form id="loginForm" method="POST" class="space-y-3" onsubmit="return handleSubmit(event)">
+            <label for="host" class="block font-medium text-white">Host / IP Address</label>
+            <div class="relative items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                <input type="text" name="host" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="192.168.88.1">
             </div>
 
-            <div>
-                <label class="block text-gray-700">Username:</label>
-                <input type="text" name="username" required class="w-full p-2 border rounded">
+            <label for="username" class="block font-medium text-white">Username</label>
+            <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                <input type="text" name="username" class="w-full p-2 text-base rounded-md placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="admin">
             </div>
 
-            <div>
-                <label class="block text-gray-700">Password:</label>
-                <input type="password" name="password" required class="w-full p-2 border rounded">
+            <label for="password" class="block font-medium text-white">Password</label>
+            <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                <input type="password" name="password" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
             </div>
 
-            <div>
-                <label class="block text-gray-700">Port:</label>
-                <input type="number" name="port" value="22" required class="w-full p-2 border rounded">
+            <label for="port" class="block font-medium text-white">Port</label>
+            <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
+                <input type="number" name="port" class="w-full p-2 text-base rounded-md text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" placeholder="22">
             </div>
-
-            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Connect</button>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 mt-4 rounded hover:bg-blue-700">Connect</button>
         </form>
     </div>
+    {% if error %}
+    <script>
+        Swal.fire({
+            fontFamily: "Inter",
+            icon: 'error',
+            title: 'Connection Failed',
+            text: '{{ error }}',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            location.reload();
+        });
+    </script>
+    {% endif %}
+    {% if berhasil %}
+    <script>
+        Swal.fire({
+            fontFamily: "Inter",
+            icon: 'success',
+            title: 'Connection Success',
+            text: 'Berhasil Login!',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            window.location.href = "{{ url_for('dashboard') }}";
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

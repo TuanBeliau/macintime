@@ -303,26 +303,47 @@ def dhcp():
                     interfaces_all.append({"address" : address, "interface" : interface})                   
     except Exception as e:
         interface_all = [{"interface": "Tidak ada interface yang cocok"}]
+    
+    try:
+        stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server lease print")
+        output = stdout.read().decode().splitlines()
 
-    if request.method == "POST": # Code Di bawah akan jalan jika terdeteksi method post
+        dhcp = []
+        for line in output:
+            parts = line.split()
+            if len(parts) >= 5 and parts[0].isdigit():  # Pastikan ini baris data, bukan header
+                ip_id, flag, address, mac_address, hostname = parts[:5]
+
+                status = "otomatis" if "D" in flag else "tidak aktif" if "X" in flag else "static"
+
+                dhcp.append({
+                    "ip_id": ip_id,
+                    "address": address,
+                    "hostname": hostname,
+                    "status": status
+                })
+
+    except Exception as e:
+        return {"error": str(e)}
+
+    if request.method == "POST":
         name = request.form["name"]
         password = request.form["password"]
-        ip_address = request.form["ip_address"] # IP address dari select sebagai gateway
-        pool_range = int(request.form["pool_range"]) # Range IP
-        lease_time = int(request.form["lease_time"]) # Lease time
+        ip_address = request.form["ip_address"]
+        pool_range = int(request.form["pool_range"])
+        lease_time = int(request.form["lease_time"])
 
-        if not ip_address or pool_range <=0:
+        if not ip_address or pool_range <= 0:
             return "Input tidak valid"
         
-        pool_name = f"dhcp_pool_{int(time.time())}" # Memberi nama unik untuk tiap pool_ip
-        name_dhcp = f"dhcp_{int(time.time())}" # Memberi nama unik untuk tiap dhcp server
-        gateway = ip_address.split("/")[0]
-        prefix = ip_address.split("/")[1]
-        base_ip = gateway.rsplit(".", 1)[0] # Memotong oktet ke-4
-        cek_ip = gateway.split(".")[3] # Ambil oktet ke-4
+        pool_name = f"dhcp_pool_{int(time.time())}"
+        name_dhcp = f"dhcp_{int(time.time())}"
 
-        # Cek apakah oktet ke-4 .1/.254
-        if cek_ip == "1" :
+        gateway, prefix = ip_address.split("/")
+        base_ip = gateway.rsplit(".", 1)[0]
+        cek_ip = gateway.split(".")[3]
+
+        if cek_ip == "1":
             pool_start = f"{base_ip}.2"
             pool_end = f"{base_ip}.{pool_range + 1}"
         else:
@@ -345,14 +366,13 @@ def dhcp():
                         break
                 if interface:
                     break
-            
+
             if not interface:
                 return "Gagal mendapatkan interface"
 
         except Exception as e:
-            return f"my bad maybe {e}"
+            return f"Error: {e}"
 
-        # Membuat command CLI
         command_dhcp = [
             f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
@@ -361,23 +381,57 @@ def dhcp():
 
         command_wireless = [
             f"/interface wireless set {interface} mode=ap-bridge ssid={name} frequency=2412 band=2ghz-b/g/n disabled=no",
-            f"/interface wireless security-profiles add name=my_{name} authentication-types=wpa2-psk wpa2-pre-shared-key={password}"
+            f"/interface wireless security-profiles add name=my_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
             f"/interface wireless set {interface} security-profile=my_{name}"
         ]
 
         try:
             for cmd in command_dhcp:
+                print(f"Executing: {cmd}")  # Debugging
                 stdin, stdout, stderr = ssh.exec_command(cmd)
+                error = stderr.read().decode()
+                if error:
+                    print(f"Error: {error}")  # Debugging
+                    return error
                 
             for cmd in command_wireless:
+                print(f"Executing: {cmd}")  # Debugging
                 stdin, stdout, stderr = ssh.exec_command(cmd)
+                error = stderr.read().decode()
+                if error:
+                    print(f"Error: {error}")  # Debugging
+                    return error
 
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("dhcp"))
         except Exception as e:
-            return f"My bad maybe, dunno {e}"
-        
-    return render_template("DHCP.html", ip_address=interfaces_all)
+            flash(f"My bad maybe, dunno {e}", "error")
+            return redirect(url_for("dhcp"))
 
+    def set_limiter(address, prefix, download, upload):
+        try:
+            address = address.split("/")[0].split(".")[1]
+
+            command_prefix = f'/ip address print where address~"{address}"'
+            stdin, stdout, stderr = ssh.exec_command(command_prefix)
+            output = stdout.read().decode().splitlines()
+
+            for line in output:
+                parts = line.split()
+                if parts[0].isdigit():
+                    prefix = parts[1].split("/")[1]
+
+
+            command_limiter = f"queue simple add name=bandwith_{name} target={address}/{prefix} max-limit={download}/{upload}"
+            stdin, stdout, stderr = ssh.exec_command(command_limiter)
+            output = stdout.read().decode()
+        except Exception as e:
+            return f"Error: {e}"
+
+    return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp)
+
+@app.route("/nat", methods={"GET", "POST"})
+def nat():
+    return render_template("nat.html")
 # -------------------------------------------
 
 # Bagian Logout
