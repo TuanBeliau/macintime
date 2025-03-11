@@ -7,6 +7,7 @@
     <title>DHCP Server</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -61,16 +62,16 @@
                             System Settings
                         </a>
                         <a href="{{ url_for('dhcp') }}"
-                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            class="block px-4 py-2 text-sm text-white {% if request.path == url_for('dhcp') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
                             DHCP Setup
                         </a>
                         <a href="#"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Change Bandwidth
                         </a>
-                        <a href="#"
+                        <a href="{{ url_for('nat') }}"
                         class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                        NAT Settings
+                            NAT Settings
                         </a>
                     </div>
                 </div>
@@ -91,9 +92,26 @@
             <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Wireless Server</h2>
 
             <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar Pengguna</h3>
-            <button id="openModal" class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors"
-            >Tambah Wireless</button>
+            <div class="flex justify-between items-center">
+                <button id="openModal" class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors">
+                    Tambah Wireless
+                </button>
+                <button id="openModalBlokir" class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors">
+                    Daftar Blokir
+                </button>
+            </div>            
 
+            {% with messages = get_flashed_messages(with_categories = true) %}
+                {% if messages %}
+                    <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                        {% for category, message in messages %}
+                            <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
 
             <div class="overflow-x-auto mt-4">
                 <table class="w-full bg-white rounded-lg overflow-hidden">
@@ -101,17 +119,38 @@
                         <tr>
                             <th class="px-4 py-2 text-left text-sm">IP Address</th>
                             <th class="px-4 py-2 text-left text-sm">Nama Pengguna</th>
-                            <th class="px-4 py-2 text-left text-sm">Waktu Tersisa</th>
+                            <th class="px-4 py-2 text-left text-sm">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for dhcp in leases %}
-                            <tr class="border-t">
-                                <td class="px-4 py-2 text-left text-sm">{{ dhcp.address }}</td>
-                                <td class="px-4 py-2 text-left text-sm">{{ dhcp.host_name }}</td>
-                                <td class="px-4 py-2 text-left text-sm">{{ dhcp.expired }}</td>
+                        {% if not dhcp %}
+                            <tr>
+                                <td class="px-4 py-2 text-center text-sm" colspan="3">Tidak ada data</td>
                             </tr>
-                        {% endfor %}
+                        {% else %}
+                            {% for dhcp in dhcp %}
+                                <pre>{{ dhcp | tojson }}</pre>
+                                <tr class="border-t">
+                                    <td class="px-4 py-2 text-left text-sm">{{ dhcp.address }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">{{ dhcp.hostname }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">
+                                        <form id="delete-form-{{ dhcp.mac_address }}" action="{{ url_for('delete_dhcp', mac_address=dhcp.mac_address) }}" method="POST">
+                                            <button type="button"
+                                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-md text-sm transition-colors"
+                                                onclick="showEditModal()">
+                                                Edit
+                                            </button>
+                                            
+                                            <button type="button" onclick="confirmDelete('{{ dhcp.mac_address }}')"
+                                                class="bg-red-500 hover:bg-red-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
+                                                Blokir
+                                            </button>
+                                        </form>
+                                        
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>            
@@ -164,76 +203,169 @@
     </script>
 
     <script>
-        // Replace the existing modal script with this:
         document.getElementById("openModal").addEventListener("click", () => {
             Swal.fire({
-            title: 'Tambah Wireless',
-            width: '32rem',
-            background: '#3f3f46', // zinc-800
-            color: '#ffffff',
-            html: `
-                <form id="wirelessForm" method="POST">
-                    <div class="overflow-x-auto mt-3">
-                        <label for="Wireless" class="block font-normal mb-2 text-white">Nama Wireless</label>
-                        <div class="flex items-center rounded-md bg-white pl-2">
-                            <input type="text" name="name" class="w-full p-2 text-base text-gray-900 focus:outline-none sm:text-sm" required>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <label for="ip_address" class="block font-normal mb-2 text-white">Select IP Address</label>
-                        <select id="ip_address" name="ip_address" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
-                            <option class="text-gray-400" value="">-- Select IP Address --</option>
-                            {% for ip in ip_address %}
-                                <option value="{{ ip.address }}">{{ ip.interface }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <label for="pool_range" class="block font-normal mb-2 text-white">Jumlah Pengguna</label>
-                        <input name="pool_range" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number" max="256" required>
-                    </div>
+                title: 'Tambah Wireless',
+                width: '32rem',
+                background: '#3f3f46', // zinc-800
+                color: '#ffffff',
+                html: `
+                    <form id="wirelessForm">
 
-                    <div class="mt-3">
-                        <label for="password" class="block font-normal mb-2 text-white">Password</label>
-                        <input name="password" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="password" required>
-                    </div>
-                    
-                    <div class="overflow-x-auto mt-3">
-                        <label for="lease_time" class="block font-normal mb-2 text-white">Lease Time</label>
-                        <div class="flex items-center rounded-md bg-white pl-2">
-                            <input type="number" name="lease_time" max="60" class="w-full p-2 text-base text-gray-900 focus:outline-none sm:text-sm" required>
+                        <div class="mt-3">
+                            <label for="ip_address" class="block font-normal mb-2 text-white">Select IP Address</label>
+                            <select id="ip_address" name="ip_address" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
+                                {% if not ip_address %}
+                                    <option class="text-gray-400" value="">Tidak ada interface yang sesuai</option>
+                                {% else %}
+                                    <option class="text-gray-400" default>-- Pilih Interface --</option>
+                                    {% for ip in ip_address %}
+                                        <option value="{{ ip.address }}">{{ ip.interface }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
                         </div>
-                    </div>
-                </form>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Save',
-            cancelButtonText: 'Tutup',
-            confirmButtonColor: '#43A047', // amber-500
-            cancelButtonColor: '#ef4444', // red-500
-            preConfirm: () => {
-                const form = document.getElementById('wirelessForm');
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return false;
+
+                        <div class="overflow-x-auto mt-3">
+                            <label for="Wireless" class="block font-normal mb-2 text-white">Nama Wireless</label>
+                            <div class="flex items-center rounded-md bg-white pl-2">
+                                <input type="text" name="name" class="w-full p-2 text-base text-gray-900 focus:outline-none sm:text-sm" required>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="password" class="block font-normal mb-2 text-white">Password</label>
+                            <input name="password" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" minlength="8" type="password" required>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="pool_range" class="block font-normal mb-2 text-white">Jumlah Pengguna</label>
+                            <input name="pool_range" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number" max="256" required>
+                        </div>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                cancelButtonText: 'Tutup',
+                confirmButtonColor: '#43A047', // amber-500
+                cancelButtonColor: '#ef4444', // red-500
+                preConfirm: () => {
+                    const form = document.getElementById('wirelessForm');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return false;
+                    }
+                    const formData = new FormData(form);
+
+                    return fetch("{{ url_for('dhcp') }}", {  // Ganti URL sesuai dengan rute Flask
+                        method: "POST",
+                        body: formData,
+                    })
+                    .then(response => response.json()) 
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", "Wireless berhasil ditambahkan!", "success")
+                            .then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error || "Terjadi kesalahan", "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
                 }
-                const formData = new FormData(form);
-                return Object.fromEntries(formData);
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.getElementById('wirelessForm');
-                form.submit();
-            }
+            });
         });
-    });
+    
+        document.getElementById("openModalBlokir").addEventListener("click", () => {
+            Swal.fire({
+                title: 'Daftar Blokir',
+                width: '32rem',
+                background: '#3f3f46', // zinc-800
+                color: '#ffffff',
+                html: `
+                    <div class="overflow-x-auto mt-4">
+                        <table class="w-full bg-white rounded-lg overflow-hidden">
+                            <thead class="bg-amber-400">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-sm">Mac-Address</th>
+                                    <th class="px-4 py-2 text-left text-sm">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                                    <tr class="border-t">
+                                        <td class="px-4 py-2 text-left text-sm"></td>
+                                        <td class="px-4 py-2 text-left text-sm"></td>
+                                    </tr>
 
-    // Keep your existing IP address range calculation code
-    document.addEventListener("DOMContentLoaded", function () {
-        // ...existing IP range calculation code...
-    });
-</script>
+                            </tbody>
+                        </table>
+                    </div>     
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                cancelButtonText: 'Tutup',
+                confirmButtonColor: '#43A047', // amber-500
+                cancelButtonColor: '#ef4444', // red-500
+                preConfirm: () => {
+                    const form = document.getElementById('daftarBlokir');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return false;
+                    }
+                    const formData = new FormData(form);
+
+                    return fetch("#", {  // Ganti URL sesuai dengan rute Flask
+                        method: "POST",
+                        body: formData,
+                    })
+                    .then(response => response.json()) 
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", "Wireless berhasil ditambahkan!", "success")
+                            .then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error || "Terjadi kesalahan", "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
+                }
+            });
+        });
+       
+        function confirmDelete(mac_address) {
+            Swal.fire({
+                title: "Apakah Anda yakin?",
+                text: "Data DHCP akan dihapus!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Ya, Hapus!",
+                cancelButtonText: "Batal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/delete_dhcp/${mac_address}`, { method: "POST" })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Success", data.success, "success")
+                                    .then(() => location.reload()); // Reload halaman setelah sukses
+                            } else {
+                                Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
+                }
+            });
+        }
+
+    </script>
+    
 </body>
 </html>
