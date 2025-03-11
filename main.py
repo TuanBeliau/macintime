@@ -505,7 +505,7 @@ def delete_dhcp(mac_address):
     ssh = ssh_connections.get(user_id)
 
     if not ssh:
-        return redirect(url_for("login"))
+        return redirect(url_for("login")) 
     
     try:
         command = f"/interface wireless access-list add mac-address={mac_address} action=deny"
