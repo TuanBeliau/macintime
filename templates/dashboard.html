@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <title>Macintime</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
@@ -64,17 +64,12 @@
                         </a>
                         <a href="{{ url_for('dhcp') }}"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                            DHCP Setup
+                            DHCP Wireless
                         </a>
-                        <a href="#"
+                        <a href="{{ url_for('firewall') }}"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                            Change Bandwidth
+                            Setting Firewall
                         </a>
-                        <a href="{{ url_for('nat') }}"
-                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                        NAT Settings
-                        </a>
-                    </div>
                 </div>
             </nav>
 
@@ -95,10 +90,10 @@
 
             <p class="text-center text-white text-sm sm:text-base">Berhasil masuk ke MikroTik dengan IP:</p>
             <p class="text-center font-semibold text-base sm:text-lg text-white mb-6">{{ host }}</p>
-            
+
             <div class="mt-4 justify-center flex">
                 <button type="submit"
-                    class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors" 
+                    class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors"
                     onclick="showCreateModal()">Tambah IP</button>
                 </button>
             </div>
@@ -120,11 +115,12 @@
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.address }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.status }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm text-center">
-                                <form id="delete-form-{{ ip.id }}" action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
+                                <form id="delete-form-{{ ip.id }}" action="{{ url_for('delete_ip', id=ip.id) }}"
+                                    method="POST">
                                     <!-- Replace modal with button that triggers SweetAlert -->
                                     <button type="button"
                                         class="{% if ip.status == 'otomatis' or ip.status == 'disabled' %} bg-gray-500 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
-                                        {% if ip.status=="otomatis" or ip.status == 'disabled' %} disabled {% endif %}
+                                        {% if ip.status=="otomatis" or ip.status=='disabled' %} disabled {% endif %}
                                         onclick="showEditModal('{{ ip.id }}', '{{ ip.address_pure }}', '{{ ip.prefix }}', '{{ ip.interface }}')">
                                         Ubah
                                     </button>
@@ -148,7 +144,7 @@
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('-translate-x-full');
         }
-        
+
         document.addEventListener('DOMContentLoaded', function () {
             const dropdownButtons = document.querySelectorAll('[data-dropdown-toggle]');
             dropdownButtons.forEach(button => {
@@ -179,11 +175,11 @@
                     <form id="editForm">
                         <label class="block text-sm font-medium text-gray-700">IP Address</label>
                         <input name="address" type="text" 
-                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            class="w-40 sm:w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
                             value="${address_pure}" required>
                         /
                         <input name="prefix" type="number"
-                            class="w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            class="w-1/4 sm:w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
                             value="${prefix}" required>
                         <label class="block text-sm font-medium text-gray-700">Interface</label>
                         <select name="interface"
@@ -217,17 +213,17 @@
                         method: "POST",
                         body: formData
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Success", data.message, "success").then(() => location.reload());
-                        } else {
-                            Swal.fire("Error", data.error, "error");
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                    });
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Success", data.message, "success").then(() => location.reload());
+                            } else {
+                                Swal.fire("Error", data.error, "error");
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
                 }
             });
         }
@@ -240,18 +236,18 @@
                 color: '#ffffff',
                 html: `
                     <form id="createForm">
-                        <label class="block text-sm font-medium text-gray-700">IP Address</label>
+                        <label class="block text-sm font-medium text-white">IP Address</label>
                         <input name="address" type="text" placeholder="192.168.88.1" 
-                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            class="w-40 sm:w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
                             >
                         /
                         <input name="prefix" type="number" placeholder="24" 
-                            class="w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            class="w-1/4 sm:w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
                             >
-                        <label class="block text-sm font-medium text-gray-700">Interface</label>
+                        <label class="block text-sm font-medium text-white">Interface</label>
                         <select name="interface"
                             class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
-                            <option selected>-- Pilih Interface --</option>
+                            <option disable selected>Pilih Interface</option>
                             {% for ip in interfaces %}
                                 <option value="{{ ip }}">{{ ip }}</option>
                             {% endfor %}
@@ -280,17 +276,25 @@
                         method: "POST",
                         body: formData
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Success", data.message, "success").then(() => location.reload());
-                        } else {
-                            Swal.fire("Error", data.error, "error");
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                    });
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    title: "Success",
+                                    text: "IP berhasil ditambah!",
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    icon: "success",
+                                    confirmButtonColor: "#F59E0B",
+                                }).then(() => location.reload());
+                            } else {
+                                Swal.fire("Error", data.error, "error");
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
                 }
             });
         }
@@ -299,20 +303,29 @@
             Swal.fire({
                 title: "Apakah Anda yakin?",
                 text: "Data IP akan dihapus!",
+                background: '#3f3f46',
+                color: '#ffffff',
                 icon: "warning",
                 showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
+                confirmButtonColor: "#43A047",
+                cancelButtonColor: "#ef4444",
                 confirmButtonText: "Ya, Hapus!",
                 cancelButtonText: "Batal"
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/delete_ip/${id}`, { method: "POST" })
+                    fetch(`/delete_ip/${id}`, {method: "POST"})
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire("Success", data.message, "success")
-                                    .then(() => location.reload()); // Reload halaman setelah sukses
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    title: "Success",
+                                    text: "IP berhasil dihapus!",
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    icon: "success",
+                                    confirmButtonColor: "#F59E0B",
+                                }).then(() => location.reload()); // Reload halaman setelah sukses
                             } else {
                                 Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
                             }

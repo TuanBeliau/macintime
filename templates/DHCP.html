@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DHCP Server</title>
+    <title>Macintime</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -62,16 +62,12 @@
                             System Settings
                         </a>
                         <a href="{{ url_for('dhcp') }}"
-                            class="block px-4 py-2 text-sm text-white {% if request.path == url_for('dhcp') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
-                            DHCP Setup
-                        </a>
-                        <a href="#"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                            Change Bandwidth
+                            DHCP Wireless
                         </a>
-                        <a href="{{ url_for('nat') }}"
+                        <a href="{{ url_for('firewall') }}"
                         class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                            NAT Settings
+                        Setting Firewall
                         </a>
                     </div>
                 </div>
@@ -91,8 +87,8 @@
         <div class="bg-zinc-700 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl mx-2">
             <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Wireless Server</h2>
 
-            <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar Pengguna</h3>
-            <div class="flex justify-between items-center">
+            <h3 class="text-lg sm:text-lg text-white font-semibold mt-6 text-center">Daftar Pengguna</h3>
+            <div class="flex justify-between items-center mt-2">
                 <button id="openModal" class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors">
                     Tambah Wireless
                 </button>

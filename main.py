@@ -274,7 +274,7 @@ def settings() :
 
         return redirect(url_for("settings"))
 
-    return render_template("setting.html", current_identity=current_identity)
+    return render_template("settings.html", current_identity=current_identity)
 
 @app.route("/DHCP-Server", methods={"GET", "POST"})
 def dhcp():
@@ -506,6 +506,19 @@ def dhcp():
             return f"Error: {e}"
 
     return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp, user_block=user_block)
+@app.route("/firewall")
+def firewall() :
+
+    if not session.get("logged_in") :
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+    
+    if not ssh:
+        return redirect(url_for("login"))
+
+    return render_template("firewall.html")
 
 @app.route("/delete_dhcp/<mac_address>", methods=["POST"])
 def delete_dhcp(mac_address):
