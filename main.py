@@ -274,7 +274,7 @@ def settings() :
 
         return redirect(url_for("settings"))
 
-    return render_template("settings.html", current_identity=current_identity)
+    return render_template("setting.html", current_identity=current_identity)
 
 @app.route("/DHCP-Server", methods={"GET", "POST"})
 def dhcp():
@@ -296,77 +296,81 @@ def dhcp():
         output = stdout.read().decode()
 
         interfaces_all = []
-        address = []
-        interface = []
-        cek_oktet = []
+        address = None
+        interface = None
+        cek_oktet = None  # Pastikan ada nilai default
 
         for line in output.splitlines():
-            if "address" in line and "wlan" in line :
+            if "address" in line and "interface=wlan1" in line:
                 address = line.split("address=")[1].split()[0]
                 interface = line.split("interface=")[1].split()[0]
                 cek_oktet = address.split("/")[0].split(".")[3]
 
-        try:
-            stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server network print detail")
-            output = stdout.read().decode()
+        if not address or not interface or not cek_oktet:
+            interfaces_all = []
+        else :
+            try:
+                stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server network print detail")
+                output = stdout.read().decode()
 
-            cek_gateway = []
-            gateway = []
-            for line in output.splitlines():
-                if "gateway" in line:
-                    gateway = line.split("gateway=")[1].split()[0]
-                    cek_gateway.append(gateway) 
+                cek_gateway = []
+                gateway = None  # Pastikan ada nilai default
 
-            if str(address) in cek_gateway:  # Konversi address ke string
-                return jsonify({"error": "Address sudah ada dalam gateway"}), 400
+                for line in output.splitlines():
+                    if "gateway" in line:
+                        gateway = line.split("gateway=")[1].split()[0]
+                        cek_gateway.append(gateway)
 
-            if cek_oktet in ["1", "254"] :
-                interfaces_all.append({"address" : address, "interface" : interface}) 
+                if address in cek_gateway:  # Tidak perlu konversi ke string lagi
+                    return jsonify({"error": "Address sudah ada dalam gateway"}), 400
 
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500      
+                if cek_oktet in ["1", "254"]:
+                    interfaces_all.append({"address": address, "interface": interface})
+
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500      
 
     except Exception as e:
-        interface_all = [{"interface": "Tidak ada interface yang cocok"}]
-    
+        interfaces_all = [{"interface": "Tidak ada interface yang cocok"}]
+
+
     # Buat list pengguna jika ada
     try:
         stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server lease print detail")
-        output = stdout.read().decode().splitlines()
+        output = stdout.read().decode().strip()
 
         dhcp = []
-        entry = []
-        for line in output:
+        entry = None  # Mulai dengan `None` agar bisa mendeteksi entry baru
+
+        for line in output.splitlines():
             line = line.strip()
 
-            if line == "":
+            if not line:  # Lewati baris kosong
                 continue
 
-            parts = line.split()
-
-            if parts[0].isdigit():
-                if entry:
+            if line[0].isdigit():  # Jika baris baru dengan ID muncul
+                if entry:  # Simpan entry sebelumnya sebelum mulai yang baru
                     dhcp.append(entry)
-                entry = {"id" : parts[0]}
+                entry = {"id": line.split()[0]}  # Buat entry baru
 
-            for part in parts:
-                if "=" in part:
-                    key, value = part.split("=", 1)
-                    if key == "address":
-                        entry[key] = value
-                    elif key == "host-name":
-                        entry["hostname"] = value.strip('"')
-                    elif key == "mac-address":
-                        entry["mac_address"] = value
-            
-        if not dhcp:
-            entry = []
-        
+            if entry is not None and "=" in line:  # Pastikan entry ada sebelum menambah data
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"')
+
+                if key == "address":
+                    entry["address"] = value
+                elif key == "host-name":
+                    entry["hostname"] = value
+                elif key == "mac-address":
+                    entry["mac_address"] = value
+
         if entry:
-            dhcp.append(entry)
+            dhcp.append(entry)  # Tambahkan entry terakhir
 
     except Exception as e:
-        return {"error": str(e)}
+        return jsonify({"error": str(e)}), 500
+
 
     # Buat nampilin blocked mac 
     try:
@@ -430,7 +434,7 @@ def dhcp():
             for line in output.splitlines():
                 hasil_output = line.split()
                 for kata in hasil_output:
-                    if kata.startswith("ether"):
+                    if kata.startswith("wlan"):
                         interface = kata
                         break
                 if interface:
@@ -452,8 +456,8 @@ def dhcp():
 
         command_wireless = [
             f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
-            f"/interface wireless add name=wlan_{name} master-interface=wlan1 ssid={name} security-profile=security_{name} vlan-id=100 vlan-mode=use-tag",
-            f"/interface wireless enable wlan_{name}"
+            f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}",
+            f"/ip firewall nat add chain=srcnat action=masquerade"
         ]
 
         try:
@@ -506,19 +510,6 @@ def dhcp():
             return f"Error: {e}"
 
     return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp, user_block=user_block)
-@app.route("/firewall")
-def firewall() :
-
-    if not session.get("logged_in") :
-        return redirect(url_for("login"))
-    
-    user_id = session.get("user_id")
-    ssh = ssh_connections.get(user_id)
-    
-    if not ssh:
-        return redirect(url_for("login"))
-
-    return render_template("firewall.html")
 
 @app.route("/delete_dhcp/<mac_address>", methods=["POST"])
 def delete_dhcp(mac_address):
