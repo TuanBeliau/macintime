@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask import Flask, request, render_template, redirect, url_for, flash, session, jsonify
 import paramiko
 import uuid
 import time
@@ -95,6 +95,8 @@ def dashboard():
                     ip_id = parts[0] # Sama seperti di atas namun ini untuk id
                     
                     address = next((part.split("address=")[1] for part in parts if "address=" in part), "Unknown") # Next membuat perulangan lebih singkat. Di sini akan mengambil nilai address= (ini index 0)
+                    address_pure = address.split("/")[0]
+                    prefix = address.split("/")[1]
                     interface = next((part.split("interface=")[1] for part in parts if "interface=" in part), "Unknown")
                     status = "otomatis" if "D" in flag else "tidak aktif" if "X" in flag else "static"
 
@@ -102,6 +104,8 @@ def dashboard():
                         "id": ip_id,
                         "interface": interface,
                         "address": address,
+                        "address_pure": address_pure,
+                        "prefix": prefix,
                         "status": status
                     })
 
@@ -136,48 +140,41 @@ def add_ip():
             stderr_output = stderr.read().decode()
              
             if stderr_output:
-                return f"Erorr when add IP: {stderr_output}"
+                return jsonify({"success": False, "error": stderr_output})
 
-            return redirect(url_for("dashboard"))
+            return jsonify({"success": True, "success": "IP Berhasil di Tambah"})
         except Exception as e:
-            return f"error occured : {e}"
+             return jsonify({"success": False, "error": f"{e}"})
 
 @app.route('/delete_ip/<id>', methods=["POST"])
 def delete_ip(id):
 
-    def delete():
-        if not session.get("logged_in"):
-            return redirect(url_for("dashboard"))
-        
-        user_id = session.get("user_id")
-        ssh = ssh_connections.get(user_id)
-
-        if not ssh:
-            return redirect(url_for('login'))
-        
-        try:
-            command = f"/ip address remove {id}"
-            stdin, stdout, stderr = ssh.exec_command(command)
-            stderr_output = stderr.read().decode()
-
-            if stderr_output:
-                return f"Error when delete IP: {stderr_output}"
-            return "IP Address Deleted Succesfully"
-        except Exception as e:
-            return f"Error: {e}"
+    if not session.get("logged_in"):
+        return redirect(url_for("dashboard"))
     
-    result = delete()
-    if result == "IP Address Deleted Succesfully":
-        return redirect(url_for("dashboard"))
-    else:
-        return redirect(url_for("dashboard"))
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if not ssh:
+        return redirect(url_for('login'))
+    
+    try:
+        command = f"/ip address remove {id}"
+        stdin, stdout, stderr = ssh.exec_command(command)
+        stderr_output = stderr.read().decode()
+
+        if stderr_output:
+            return jsonify({"success": False, "error": stderr_output})
+
+        return jsonify({"success": True, "message": "IP Address Berhasil dihapus"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route('/change_ip/<id>', methods=["POST"])
 def change_ip(id):
-
     if not session.get("logged_in"):
         return redirect(url_for("login"))
-        
+
     user_id = session.get("user_id")
     ssh = ssh_connections.get(user_id)
 
@@ -185,9 +182,18 @@ def change_ip(id):
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        address = request.form['address'] # Nanti di buat form
-        prefix = int(request.form['prefix']) 
-        interface = request.form['interface']
+        address = request.form.get('address')
+        prefix = request.form.get('prefix')
+        interface = request.form.get('interface')
+
+        if not address or not prefix or not interface:
+            return jsonify({"success": False, "error": "Semua field harus diisi!"})
+
+        # Konversi prefix ke integer
+        try:
+            prefix = int(prefix)
+        except ValueError:
+            return jsonify({"success": False, "error": "Prefix harus berupa angka!"})
 
         def change(address, prefix, interface, id):
             try:
@@ -196,18 +202,14 @@ def change_ip(id):
                 stderr_output = stderr.read().decode()
 
                 if stderr_output:
-                    return f"Error when change IP: {stderr_output}"
-                return "IP Address Change Succesfully"
+                    return {"success": False, "error": stderr_output}
+
+                return {"success": True, "message": "IP Address Berhasil diubah"}
             except Exception as e:
-                return f"Error: {e}"
+                return {"success": False, "error": str(e)}
 
         result = change(address, prefix, interface, id)
-        if result == "IP Address Change Succesfully":
-            return redirect(url_for("dashboard"))
-        else:
-            return redirect(url_for("dashboard"))
-    
-    return render_template("test.html")
+        return jsonify(result)
 
 # -------------------------------------------
 
@@ -272,7 +274,6 @@ def settings() :
 
         return redirect(url_for("settings"))
 
-
     return render_template("setting.html", current_identity=current_identity)
 
 @app.route("/DHCP-Server", methods={"GET", "POST"})
@@ -288,56 +289,123 @@ def dhcp():
 
     error = session.pop("error", None) # Menghapus error jika ada
 
+    # Buat select pas nambah wireless
     try:
         command_ip = "/ip address print detail"
         stdin, stdout, stderr = ssh.exec_command(command_ip)
         output = stdout.read().decode()
 
         interfaces_all = []
+        address = None
+        interface = None
+
         for line in output.splitlines():
-            if "address" in line :
+            if "address" in line and "wlan" in line :
                 address = line.split("address=")[1].split()[0]
                 interface = line.split("interface=")[1].split()[0]
                 cek_oktet = address.split("/")[0].split(".")[3]
-                if cek_oktet == "1" or cek_oktet == "254" :
-                    interfaces_all.append({"address" : address, "interface" : interface})                   
+
+        try:
+            stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server network print detail")
+            output = stdout.read().decode()
+
+            cek_gateway = []
+            gateway = []
+            for line in output.splitlines():
+                if "gateway" in line:
+                    gateway = line.split("gateway=")[1].split()[0]
+                    cek_gateway.append(gateway) 
+
+            if address in gateway:
+                return redirect(url_for("dhcp"))
+
+            if cek_oktet in ["1", "254"] :
+                interfaces_all.append({"address" : address, "interface" : interface}) 
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500      
+
     except Exception as e:
         interface_all = [{"interface": "Tidak ada interface yang cocok"}]
     
+    # Buat list pengguna jika ada
     try:
-        stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server lease print")
+        stdin, stdout, stderr = ssh.exec_command("/ip dhcp-server lease print detail")
         output = stdout.read().decode().splitlines()
 
         dhcp = []
+        entry = []
         for line in output:
+            line = line.strip()
+
+            if line == "":
+                continue
+
             parts = line.split()
-            if len(parts) >= 5 and parts[0].isdigit():  # Pastikan ini baris data, bukan header
-                ip_id, flag, address, mac_address, hostname = parts[:5]
 
-                status = "otomatis" if "D" in flag else "tidak aktif" if "X" in flag else "static"
+            if parts[0].isdigit():
+                if entry:
+                    dhcp.append(entry)
+                entry = {"id" : parts[0]}
 
-                dhcp.append({
-                    "ip_id": ip_id,
-                    "address": address,
-                    "hostname": hostname,
-                    "status": status
-                })
+            for part in parts:
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    if key == "address":
+                        entry[key] = value
+                    elif key == "host-name":
+                        entry["hostname"] = value.strip('"')
+                    elif key == "mac-address":
+                        entry["mac_address"] = value
+            
+        if not dhcp:
+            entry = []
+        
+        if entry:
+            dhcp.append(entry)
 
     except Exception as e:
         return {"error": str(e)}
+
+    # Buat nampilin blocked mac 
+    try:
+        stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list print detail where action=deny")
+        output = stdout.read().decode()
+
+        user_block = []
+        mac_address = None
+
+        for line in output.splitlines():
+            line = line.strip()
+            if "mac-address=" in line:
+                _, _, mac_address = line.partition("mac-address=")
+                mac_address = mac_address.split()[0].strip()
+                user_block.append(mac_address)
+
+        if not user_block:
+            user_block = []  # Pastikan user_block tidak kosong
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})  # ✅ Flask butuh response valid
 
     if request.method == "POST":
         name = request.form["name"]
         password = request.form["password"]
         ip_address = request.form["ip_address"]
         pool_range = int(request.form["pool_range"])
-        lease_time = int(request.form["lease_time"])
+
+        stdin, stdout, stderr = ssh.exec_command(f"/ip pool print detail")
+        output = stdout.read().decode()
+
+        for line in output.splitlines():
+            if "name" in line:
+                pool_name = line.split("name=")[1].split()[0].strip('"')
+                if pool_name == f"pool_{name}":
+                    cek_name = False
+                    return jsonify({"success": False, "error": "Name sudah ada"})
 
         if not ip_address or pool_range <= 0:
             return "Input tidak valid"
-        
-        pool_name = f"dhcp_pool_{int(time.time())}"
-        name_dhcp = f"dhcp_{int(time.time())}"
 
         gateway, prefix = ip_address.split("/")
         base_ip = gateway.rsplit(".", 1)[0]
@@ -369,23 +437,33 @@ def dhcp():
 
             if not interface:
                 return "Gagal mendapatkan interface"
-
         except Exception as e:
             return f"Error: {e}"
 
+        command_pool = [
+            f"/ip pool add name=pool_{name} ranges={pool_range}"
+        ]
+
         command_dhcp = [
-            f"/ip pool add name={pool_name} ranges={pool_range}",
             f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-            f"/ip dhcp-server add name={name_dhcp} interface={interface} address-pool={pool_name} lease-time={lease_time}m disabled=no"
+            f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
         ]
 
         command_wireless = [
-            f"/interface wireless set {interface} mode=ap-bridge ssid={name} frequency=2412 band=2ghz-b/g/n disabled=no",
-            f"/interface wireless security-profiles add name=my_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
-            f"/interface wireless set {interface} security-profile=my_{name}"
+            f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
+            f"/interface wireless add name=wlan_{name} master-interface=wlan1 ssid={name} security-profile=security_{name} vlan-id=100 vlan-mode=use-tag",
+            f"/interface wireless enable wlan_{name}"
         ]
 
         try:
+            for cmd in command_pool:
+                print(f"Executing: {cmd}")  # Debugging
+                stdin, stdout, stderr = ssh.exec_command(cmd)
+                error = stderr.read().decode()
+                if error:
+                    print(f"Error: {error}")  # Debugging
+                    return error
+
             for cmd in command_dhcp:
                 print(f"Executing: {cmd}")  # Debugging
                 stdin, stdout, stderr = ssh.exec_command(cmd)
@@ -407,9 +485,9 @@ def dhcp():
             flash(f"My bad maybe, dunno {e}", "error")
             return redirect(url_for("dhcp"))
 
+    # Belum done buat queue
     def set_limiter(address, prefix, download, upload):
         try:
-            address = address.split("/")[0].split(".")[1]
 
             command_prefix = f'/ip address print where address~"{address}"'
             stdin, stdout, stderr = ssh.exec_command(command_prefix)
@@ -417,17 +495,38 @@ def dhcp():
 
             for line in output:
                 parts = line.split()
-                if parts[0].isdigit():
-                    prefix = parts[1].split("/")[1]
+                if "network" in line:
+                    network = parts("network=")[1].split()[0].strip("'")
 
-
-            command_limiter = f"queue simple add name=bandwith_{name} target={address}/{prefix} max-limit={download}/{upload}"
+            command_limiter = f"queue simple add name=bandwith_{name} target={network} max-limit={download}/{upload}"
             stdin, stdout, stderr = ssh.exec_command(command_limiter)
             output = stdout.read().decode()
         except Exception as e:
             return f"Error: {e}"
 
-    return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp)
+    return render_template("DHCP.html", ip_address=interfaces_all, dhcp=dhcp, user_block=user_block)
+
+@app.route("/delete_dhcp/<mac_address>", methods=["POST"])
+def delete_dhcp(mac_address):
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    ssh = ssh_connections.get(user_id)
+
+    if not ssh:
+        return redirect(url_for("login")) 
+    
+    try:
+        command = f"/interface wireless access-list add mac-address={mac_address} action=deny"
+        stdin, stdout, stderr = ssh.exec_command(command)
+        error = stderr.read().decode()
+
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "success": "DHCP Server Berhasil dihapus"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route("/nat", methods={"GET", "POST"})
 def nat():
