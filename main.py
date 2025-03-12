@@ -296,8 +296,9 @@ def dhcp():
         output = stdout.read().decode()
 
         interfaces_all = []
-        address = None
-        interface = None
+        address = []
+        interface = []
+        cek_oktet = []
 
         for line in output.splitlines():
             if "address" in line and "wlan" in line :
@@ -316,8 +317,8 @@ def dhcp():
                     gateway = line.split("gateway=")[1].split()[0]
                     cek_gateway.append(gateway) 
 
-            if address in gateway:
-                return redirect(url_for("dhcp"))
+            if str(address) in cek_gateway:  # Konversi address ke string
+                return jsonify({"error": "Address sudah ada dalam gateway"}), 400
 
             if cek_oktet in ["1", "254"] :
                 interfaces_all.append({"address" : address, "interface" : interface}) 
@@ -373,7 +374,7 @@ def dhcp():
         output = stdout.read().decode()
 
         user_block = []
-        mac_address = None
+        mac_address = []
 
         for line in output.splitlines():
             line = line.strip()
