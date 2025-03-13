@@ -4,7 +4,7 @@ import uuid
 import time
 
 app = Flask(__name__)
-app.secret_key = "apalah"
+app.secret_key = "apanlah"
 
 ssh_connections = {}
 
