@@ -196,23 +196,19 @@ def wireless():
 
     # Buat cek user yang di blokir
     try:
-        stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list where authentication=no forwarding=no")
+        stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list print where authentication=no forwarding=no")
+        # action=deny
         output = stdout.read().decode()
 
-        pattern = r'mac-address=([\w:]+).*?comment="(.*?)"'
-
-        matches = re.findall(pattern, output, re.DOTALL)
+        pattern = re.findall(r';;;\s*(.+?)\s*mac-address=([0-9A-Fa-f:]+)', output)
+        user_block = {}
         
-        if not matches :
-            user_block = [{
-                "hostname": "Kosong",
-                "mac_address": "Kosong"
-            }]
-        else :
-            user_block = [{
-                "hostname": comment,
-                "mac_address": mac,
-            } for comment, mac in matches]
+        if pattern:
+            for hostname, mac_address in pattern:
+                user_block = {
+                    "hostname": hostname,
+                    "mac_address": mac_address,
+                }
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}) 
@@ -241,15 +237,6 @@ def wireless():
         pattern_1 = r'address=([\d.]+)\s+mac-address=([\w:]+).*?host-name="(.*?)"'
         matches_1 = re.findall(pattern_1, output_1, re.DOTALL)
 
-        # stidin, stdout, stderr = ssh.exec_command("/interface wireless print detail")
-        # output_2 = stdout.read().decode()
-
-        # pattern_2 = r'ssid="(.*?)"'
-        # matches_2 = re.findall(pattern_2, output_2, re.DOTALL)
-
-        # if not matches_2:
-        #     return matches_2
-
         if not matches_1 :
             data_user = [{
                 "address": "Kosong",
@@ -262,18 +249,6 @@ def wireless():
                 "mac_address": mac,
                 "hostname": hostname
             } for ip, mac, hostname in matches_1]
-        
-        # data_user = []
-        # ssid_list = list(matches_2)  # SSID yang ditemukan
-
-        # for i, (ip, mac, hostname) in enumerate(matches_1):
-        #     ssid = ssid_list[i] if i < len(ssid_list) else "Tidak Diketahui"
-        #     data_user.append({
-        #         "address": ip,
-        #         "mac_address": mac,
-        #         "hostname": hostname,
-        #         "ssid": ssid
-        #     })
    
     except Exception as e:
         return jsonify({"error_dhcplease": str(e)}), 500
@@ -371,7 +346,7 @@ def wireless():
 
             interface = None
             if not matches:
-                return f"Gagal Mendapatkan interface: {output}"
+                return f"Gagal Mendapatkan interface: {gateway}"
             else :
                 interface = matches[0]
 
@@ -452,7 +427,7 @@ def wireless():
         except Exception as e:
             return jsonify({"error_cmd": str(e)}), 500
 
-    return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp)
+    return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp, user_block=user_block)
 
 # CEK BISA ENGGAK NYA
 @app.route("/delete_wireless/<mac_address>", methods=["POST"])
@@ -480,7 +455,7 @@ def delete_wireless(mac_address):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# BELUM DONE
+# CEK BISA ENGGAK NYA
 @app.route("/nat", methods={"GET", "POST"})
 def nat():
     
