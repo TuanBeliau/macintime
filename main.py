@@ -3,6 +3,7 @@ import paramiko
 import uuid
 import time
 import re
+import socket
 
 app = Flask(__name__)
 app.secret_key = "apalah"
@@ -14,7 +15,7 @@ def ssh_connect(host, username, password, port):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname=host, username=username, password=password, port=port)
+        ssh.connect(hostname=host, username=username, password=password, port=port, timeout=3)
 
         session.pop("error", None)
 
@@ -32,6 +33,9 @@ def ssh_connect(host, username, password, port):
         return True
     except paramiko.AuthenticationException:
         session['error'] = "Autentikasi gagal, coba cek username dan password"
+        return False
+    except (socket.timeout, socket.gaierror):
+        session['error'] = "IP Address tidak ditemukan atau Mikrotik offline"
         return False
     except TimeoutError:
         session['error'] = "Timeout, gagal terhubung. Pastikan koneksi tersedia"
@@ -173,7 +177,7 @@ def settings() :
 
         return redirect(url_for("settings"))
 
-    return render_template("setting.html", current_identity=current_identity)
+    return render_template("settings.html", current_identity=current_identity)
 
 # sudah VALID (GUEST Belum)
 @app.route("/wireless", methods={"GET", "POST"})
@@ -189,6 +193,7 @@ def wireless():
 
     error = session.pop("error", None) # Menghapus error jika ada
 
+    # Buat cek user yang di blokir
     try:
         stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list print detail where action=deny")
         output = stdout.read().decode()
@@ -220,9 +225,9 @@ def wireless():
 
         matches = re.findall(pattern, output, re.DOTALL)
         
-        cek_wlan = None
+        cek_dhcp = None
         if matches:
-            cek_wlan = True
+            cek_dhcp = True
 
     except Exception as e:
         return jsonify({"error_cek(wlan1)": str(e)}), 500
@@ -292,7 +297,7 @@ def wireless():
 
         pool_range = f"{pool_start}-{pool_end}"
 
-        # Cek wlan1
+        # Cek interface wlan1
         try:
             stdin, stdout, stderr = ssh.exec.command("/interface wireless find where disabled=yes")
             output = stdout.read().decode()
@@ -371,45 +376,82 @@ def wireless():
 
         # Menjalankan command utama
         try:
-            # Menjalankan command pool
-            stdin, stdout, stderr = ssh.exec_command(f"/ip pool add name=pool_{name} ranges={pool_range}")
-            error_pool = stderr.read().decode()
+            if cek_dhcp:
+                # Menjalankan command pool
+                stdin, stdout, stderr = ssh.exec_command(f"/ip pool add name=pool_{name} ranges={pool_range}")
+                error_pool = stderr.read().decode()
 
-            if error_pool:
-                print(f"Error_pool: {error_pool}")
+                if error_pool:
+                    print(f"Error_pool: {error_pool}")
 
-            # Menjalankan command dhcp
-            command_dhcp = [
-                f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-                f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
-            ]
+                # Menjalankan command dhcp
+                command_dhcp = [
+                    f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
+                    f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
+                ]
 
-            for cmd in command_dhcp:
-                print(f"Executing: {cmd}")  # Debugging
-                stdin, stdout, stderr = ssh.exec_command(cmd)
-                error = stderr.read().decode()
-                if error:
-                    print(f"Error_dhcp: {error}")  # Debugging
-                    return error  # Menghentikan eksekusi jika ada error
+                for cmd in command_dhcp:
+                    print(f"Executing: {cmd}")  # Debugging
+                    stdin, stdout, stderr = ssh.exec_command(cmd)
+                    error = stderr.read().decode()
+                    if error:
+                        print(f"Error_dhcp: {error}")  # Debugging
+                        return error  # Menghentikan eksekusi jika ada error
 
-            # Menjalankan command wireless
-            command_wireless = [
-                f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
-                f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}"
-            ]
+                # Menjalankan command wireless
+                command_wireless = [
+                    f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
+                    f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}"
+                ]
 
-            for cmd in command_wireless:
-                print(f"Executing: {cmd}")  # Debugging
-                stdin, stdout, stderr = ssh.exec_command(cmd)
-                error = stderr.read().decode()
-                if error:
-                    print(f"Error_wireless: {error}")  # Debugging
-                    return error  # Menghentikan eksekusi jika ada error
+                for cmd in command_wireless:
+                    print(f"Executing: {cmd}")  # Debugging
+                    stdin, stdout, stderr = ssh.exec_command(cmd)
+                    error = stderr.read().decode()
+                    if error:
+                        print(f"Error_wireless: {error}")  # Debugging
+                        return error  # Menghentikan eksekusi jika ada error
+
+            else:
+                # Menjalankan command pool
+                stdin, stdout, stderr = ssh.exec_command(f"/ip pool add name=pool_{name} ranges={pool_range}")
+                error_pool = stderr.read().decode()
+
+                if error_pool:
+                    print(f"Error_pool: {error_pool}")
+
+                # Menjalankan command dhcp
+                command_dhcp = [
+                    f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
+                    f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
+                ]
+
+                for cmd in command_dhcp:
+                    print(f"Executing: {cmd}")  # Debugging
+                    stdin, stdout, stderr = ssh.exec_command(cmd)
+                    error = stderr.read().decode()
+                    if error:
+                        print(f"Error_dhcp: {error}")  # Debugging
+                        return error  # Menghentikan eksekusi jika ada error
+
+                # Menjalankan command wireless
+                command_wireless = [
+                    f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
+                    f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}"
+                ]
+
+                for cmd in command_wireless:
+                    print(f"Executing: {cmd}")  # Debugging
+                    stdin, stdout, stderr = ssh.exec_command(cmd)
+                    error = stderr.read().decode()
+                    if error:
+                        print(f"Error_wireless: {error}")  # Debugging
+                        return error  # Menghentikan eksekusi jika ada error
 
         except Exception as e:
             return jsonify({"error_cmd": str(e)}), 500
 
-    return render_template("wireless.html", data_user=data_user, cek_wlan=cek_wlan)
+    return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp)
 
 # CEK BISA ENGGAK NYA
 @app.route("/edit_wireless/<id>", methods=["POST"])
