@@ -4,6 +4,7 @@ import uuid
 import time
 import re
 import socket
+import validators
 
 app = Flask(__name__)
 app.secret_key = "apalah"
@@ -195,7 +196,7 @@ def wireless():
 
     # Buat cek user yang di blokir
     try:
-        stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list print detail where action=deny")
+        stdin, stdout, stderr = ssh.exec_command("/interface wireless access-list where authentication=no forwarding=no")
         output = stdout.read().decode()
 
         pattern = r'mac-address=([\w:]+).*?comment="(.*?)"'
@@ -281,7 +282,10 @@ def wireless():
     if request.method == "POST":
         name = request.form["name"] # Untuk edit pastikan value ini di ambil dan di simpan di form edit lalu di ganti dan di jalankan ulang
         password = request.form["password"]
-        ip_address = request.form["ip_address"]
+        if cek_dhcp:
+            ip_Address = "192.168.20.1/24"
+        else:
+            ip_address = request.form["ip_address"]
         pool_range = int(request.form["pool_range"])
 
         gateway, prefix = ip_address.split("/")
@@ -299,14 +303,14 @@ def wireless():
 
         # Cek interface wlan1
         try:
-            stdin, stdout, stderr = ssh.exec.command("/interface wireless find where disabled=yes")
+            stdin, stdout, stderr = ssh.exec_command("/interface wireless find where disabled=yes")
             output = stdout.read().decode()
 
             if not output :
                 interface_wlan =[line.split()[1] for line in output.splitlines() if "wlan" in line]
 
                 if interface_wlan:
-                    stdin, stdout, stderr = ssh.exce_command(f"/interface wireless enable {interface_wlan[0]}")
+                    stdin, stdout, stderr = ssh.exec_command(f"/interface wireless enable {interface_wlan[0]}")
         
         except Exception as e:
             return jsonify({"Error_activatingWlan1": {e}})
@@ -316,7 +320,7 @@ def wireless():
             stdin, stdout, stderr = ssh.exec_command("ip address print detail")
             output = stdout.read().decode()
 
-            pattern = r'address=([\d.+])'
+            pattern = r'address=([\d\.+])'
 
             matches = re.findall(pattern, output, re.DOTALL)
 
@@ -377,40 +381,37 @@ def wireless():
         # Menjalankan command utama
         try:
             if cek_dhcp:
-                # Menjalankan command pool
-                stdin, stdout, stderr = ssh.exec_command(f"/ip pool add name=pool_{name} ranges={pool_range}")
-                error_pool = stderr.read().decode()
+                stdin, stdout, stderr = ssh.exec_command(f"/interface wireless security-profiles set [find where name=] wpa-pre-shared-key={password} wpa2-pre-shared-key={password}")
+                error_security = stderr.read().decode()
 
-                if error_pool:
-                    print(f"Error_pool: {error_pool}")
+                if error_security:
+                    return error_security
 
-                # Menjalankan command dhcp
-                command_dhcp = [
-                    f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-                    f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
-                ]
+                stdin, stdout, stderr = ssh.exec_command(f"/wireless set [find where interface=wlan1] ssid={name}")
+                error_ssid = stderr.read().decode()
 
-                for cmd in command_dhcp:
-                    print(f"Executing: {cmd}")  # Debugging
-                    stdin, stdout, stderr = ssh.exec_command(cmd)
-                    error = stderr.read().decode()
-                    if error:
-                        print(f"Error_dhcp: {error}")  # Debugging
-                        return error  # Menghentikan eksekusi jika ada error
+                if error_ssid:
+                    return error_ssid
 
-                # Menjalankan command wireless
-                command_wireless = [
-                    f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
-                    f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}"
-                ]
+                stdin, stdout, stderr = ssh.exec_command(f"/ip dhcp-server print detail where interface=wlan1")
+                output = stdout.read().decode()
+                error_print = stderr.read().decode()
 
-                for cmd in command_wireless:
-                    print(f"Executing: {cmd}")  # Debugging
-                    stdin, stdout, stderr = ssh.exec_command(cmd)
-                    error = stderr.read().decode()
-                    if error:
-                        print(f"Error_wireless: {error}")  # Debugging
-                        return error  # Menghentikan eksekusi jika ada error
+                if error_print:
+                    return error_print
+                
+                pattern = r'address-pool=([\w\d-]+)' 
+
+                address_pool = re.findall(pattern, output, re.DOTALL)
+
+                if not address_pool:
+                    return output
+                
+                stdin, stdout, stderr = ssh.exec_command(f'ip pool set [find where name="{address_pool}"] ranges={pool_range}')
+                error_ranges = stderr.read().decode()
+
+                if error_ranges:
+                    return error_ranges
 
             else:
                 # Menjalankan command pool
@@ -454,71 +455,6 @@ def wireless():
     return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp)
 
 # CEK BISA ENGGAK NYA
-@app.route("/edit_wireless/<id>", methods=["POST"])
-def edit_wireless(id):
-
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-    
-    user_id = session.get(user_id)
-    ssh = ssh_connections.get(user_id)
-
-    if not ssh:
-        return redirect(url_for("login"))
-    
-    error = session.pop("error", None)
-
-    ssid = request.form.get("ssid")
-    password = request.form.get("password")
-    address = request.form.get("address")
-    pool_range = int(request.form.get("pool_range"))
-
-    gateway, prefix = address.split("/")
-    base_ip = gateway.rsplit(".", 1)[0]
-    cek_ip = gateway.split(".")[3]
-
-    if cek_ip == "1":
-        pool_start = f"{base_ip}.2"
-        pool_end = f"{base_ip}.{pool_range + 1}"
-    else:
-        pool_start = f"{base_ip}.1"
-        pool_end = f"{base_ip}.{pool_range}"
-
-    ranges = f"{pool_start}-{pool_end}"
-    
-    try:
-        stdin, stdout, stderr = ssh.exec_command(f"/wireless interface security-profile set {id} wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}")
-        error_security = stderr.read().decode()
-
-        if error_security:
-            return error_security
-
-        stdin, stdout, stderr = ssh.exec_command(f"/wireless set [find where interface=wlan1] ssid={ssid}")
-        error_ssid = stderr.read().decode()
-
-        if error_ssid:
-            return error_ssid
-
-        stdin, stdout, stderr = ssh.exec_command(f"/ip dhcp-server print detail where interface=wlan1")
-        output = stdout.read().decode()
-        error_print = stderr.read().decode()
-
-        if error_print:
-            return error_print
-        
-        pattern = r'address-pool=([\w\d-]+)' 
-
-        address_pool = re.findall(pattern, output, re.DOTALL)
-
-        if not address_pool:
-            return output
-        
-        stdin, stdout, stderr = ssh.exec_command(f'ip pool set [find where name="{address_pool}"] ranges={ranges}')
-         
-    except Exception as e:
-        return f"Error: {e}"
-
-# CEK BISA ENGGAK NYA
 @app.route("/delete_wireless/<mac_address>", methods=["POST"])
 def delete_wireless(mac_address):
     if not session.get("logged_in"):
@@ -557,10 +493,30 @@ def nat():
     if not ssh:
         return redirect(url_for("login"))
     
+    # Cek apakah website masih aktif
+    try:
+        stdin,stdout,stderr = ssh.exec_command('/ip firewall address-list print detail')
+        
+        pattern = re.findall(r'(?:address=|;;;\s*)([\w\.\-]+)', stdout.read().decode())
+
+        if pattern:
+            blocked = set()
+
+            for x in pattern:
+                if not re.match(r'^\d+\.\d+\.\d+\.d+$', x):
+                    blocked.add(x)
+    
+    except:
+        return jsonify({'success':False, 'error':'a'})
+    
     filter = None
 
     if request.method == "POST":
-        website = request.form['website']
+        data = request.get_json()
+        website = data['website']
+
+        if not validators.url(website):
+            return jsonify({'success':False, 'error':'Website sudah tidak active'})
 
         stdin, stdout, stderr  = ssh.exec_command('/ip firewall address-list list=website address=website')
         address_list = stderr.read().decode()
@@ -576,10 +532,10 @@ def nat():
             'udp': stderr.read().decode()
         }
 
-        if not filter:
+        if filter:
             return jsonify({'success':False, 'error':filter})
 
-    return render_template("nat.html", filter=filter)
+    return render_template("nat.html", filter=filter, blocked=blocked)
 # -------------------------------------------
 
 # Bagian Logout
