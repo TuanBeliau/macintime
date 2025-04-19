@@ -357,7 +357,7 @@ def wireless():
         try:
             if cek_dhcp:
                 stdin, stdout, stderr = ssh.exec_command(f"/interface wireless security-profiles set [find where name=] wpa-pre-shared-key={password} wpa2-pre-shared-key={password}")
-                error_security = stderr.read().decode()
+                error_security = stderr.read().decode() 
 
                 if error_security:
                     return error_security
