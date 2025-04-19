@@ -6,7 +6,7 @@ import re
 import socket
 import validators
 
-app = Flask(__name__)
+app = Flask(__name__) 
 app.secret_key = "apalah"
 
 ssh_connections = {}
