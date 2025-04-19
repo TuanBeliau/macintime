@@ -507,7 +507,7 @@ def nat():
                     blocked.add(x)
     
     except:
-        return jsonify({'success':False, 'error':'a'})
+        return jsonify({'success':False, 'error':'a'}) 
     
     filter = None
 
