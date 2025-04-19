@@ -456,7 +456,7 @@ def delete_wireless(mac_address):
         return jsonify({"success": False, "error": str(e)})
 
 # CEK BISA ENGGAK NYA
-@app.route("/nat", methods={"GET", "POST"})
+@app.route("/nat", methods=["GET", "POST"])
 def nat():
     
     if not session.get("logged_in"):
@@ -468,47 +468,60 @@ def nat():
     if not ssh:
         return redirect(url_for("login"))
     
-    # Cek apakah website masih aktif
+    # Cek ada yang ke block enggak
     try:
         stdin,stdout,stderr = ssh.exec_command('/ip firewall address-list print detail')
         
         pattern = re.findall(r'(?:address=|;;;\s*)([\w\.\-]+)', stdout.read().decode())
 
+        blocked = None
         if pattern:
             blocked = set()
 
             for x in pattern:
-                if not re.match(r'^\d+\.\d+\.\d+\.d+$', x):
+                if not re.match(r'^\d+\.\d+\.\d+\.\d+$', x):
                     blocked.add(x)
     
     except:
-        return jsonify({'success':False, 'error':'a'})
+        return jsonify({'success':False, 'error':'Gagal ambil address-list di firewall'})
     
-    filter = None
+    filter = {}
 
     if request.method == "POST":
         data = request.get_json()
         website = data['website'] 
 
-        if not validators.url(website):
+        try:
+            stdin, stdout, stderr = ssh.exec_command("/ip firewall address-list print detail")
+            output = stdout.read().decode()
+
+            pattern = re.findall(r'list=([\w\.]+)', output)
+            if website in pattern :
+                return jsonify({"success":False, 'error':'Website sudah diblokir'})
+        except:
+            return jsonify({'success':False, 'error':'Gak bisa ngeprint'})
+
+        if not validators.url(f'https://{website}'):
             return jsonify({'success':False, 'error':'Website sudah tidak active'})
 
-        stdin, stdout, stderr  = ssh.exec_command('/ip firewall address-list list=website address=website')
+        stdin, stdout, stderr  = ssh.exec_command(f'/ip firewall address-list add list={website} address={website}')
         address_list = stderr.read().decode()
 
         if address_list:
             return jsonify({'success':False, 'error':address_list})
         
-        stdin, stdout, stderr = ssh.exec_command('/ip firewall filter chain=forward protocol=tcp dst-port=443 dst-address-list=website log=no log-prefix=""')
-        stdin, stdout, stderr = ssh.exec_command('/ip firewall filter chain=forward protocol=udp dst-port=443 dst-address-list=website log=no log-prefix=""')
+        stdin, stdout_tcp, stderr = ssh.exec_command(f'/ip firewall filter add chain=forward action=drop protocol=tcp dst-port=443 dst-address-list={website} log=no log-prefix=""')
+        stdin, stdout_udp, stderr = ssh.exec_command(f'/ip firewall filter add chain=forward action=drop protocol=udp dst-port=443 dst-address-list={website} log=no log-prefix=""')
 
         filter = {
-            'tcp': stderr.read().decode(),
-            'udp': stderr.read().decode()
+            'tcp': stdout_tcp.read().decode(),
+            'udp': stdout_udp.read().decode()
         }
 
         if filter:
-            return jsonify({'success':False, 'error':filter})
+            return jsonify({'success': True, 'message': 'Website berhasil di blokir'})
+        else:
+            return jsonify({'success': False, 'error':'Gagal memblokir'})
 
     return render_template("nat.html", filter=filter, blocked=blocked)
 # -------------------------------------------

@@ -92,7 +92,7 @@
                 <div class="overflow-x-auto mt-3">
                     <label for="password" class="block font-medium text-white">Nama Website yang ingin diblokir</label>
                     <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                        <input type="text" name="website" id="website" placeholder="www.example.com"
+                        <input type="text" name="website" id="website" placeholder="example.com"
                             class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
                     </div>
                 </div>
@@ -116,7 +116,7 @@
             const website = document.getElementById('website').value.trim();
             
             // Regular expression for URL validation
-            const urlRegex = /^(https?:\/\/)?((([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,})|localhost|(\d{1,3}\.){3}\d{1,3})(:\d{1,5})?(\/.*)?$/;
+            const urlRegex = /^([a-zA-Z0-9\-]+(\.[a-zA-Z0-9\-]+)+)(\/.*)?$/;
     
             if (!urlRegex.test(website)) {
                 Swal.fire({
@@ -142,6 +142,13 @@
                         icon: 'error',
                         title: 'Error',
                         text: data.error,
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'success',
+                        title: data.message,
                         confirmButtonColor: '#3085d6'
                     });
                 }
