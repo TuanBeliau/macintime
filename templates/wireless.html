@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless Server</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+        body {
+            font-family: "Inter", serif;
+        }
+    </style>
+</head>
+
+<body class="bg-zinc-800">
+    <!-- Mobile menu button -->
+    <button type="button" class="lg:hidden fixed top-4 left-4 z-50 text-white" onclick="toggleSidebar()">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <div id="sidebar"
+        class="fixed top-0 left-0 h-full w-64 bg-zinc-700 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-40">
+        <div class="flex flex-col h-full">
+            <!-- Logo -->
+            <div class="p-4">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" class="w-32 h-32 mx-auto">
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="{{ url_for('dashboard') }}"
+                    class="block px-4 py-2 rounded-md text-white hover:bg-amber-400 transition-colors">
+                    Home
+                </a>
+
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open"
+                        class="flex items-center justify-between w-full px-4 py-2 text-white hover:bg-amber-400 rounded-md transition-colors">
+                        <span>Settings</span>
+                        <svg class="w-4 h-4 transition-transform " :class="{'rotate-180': open}"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </button>
+
+                    <div x-show="open" @click.away="open = false"
+                        class="px-2 py-2 mt-2 space-y-2 bg-zinc-600 rounded-md">
+                        <a href="{{ url_for('settings') }}"
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            System Settings
+                        </a>
+                        <a href="{{ url_for('wireless') }}"
+                            class="block px-4 py-2 text-sm text-white {% if request.path == url_for('wireless') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
+                            DHCP Setup
+                        </a>
+                        <a href="#"
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            Change Bandwidth
+                        </a>
+                        <a href="{{ url_for('nat') }}"
+                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            NAT Settings
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Logout button -->
+            <div class="p-4">
+                <a href="{{ url_for('logout') }}"
+                    class="block w-full px-4 py-2 text-center rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:ml-64 p-2 sm:p-4 min-h-screen flex items-center justify-center">
+        <div class="bg-zinc-700 p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl mx-2">
+            <h2 class="text-xl sm:text-2xl font-medium text-center text-amber-400 mb-4">Wireless Server</h2>
+
+            <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar Pengguna</h3>
+            <div class="flex justify-between items-center">
+                
+                <button id="openModalWireless" class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors">
+                    {% if cek_dhcp %}
+                        Edit Wireless
+                    {% else %}
+                        Buat Wireless
+                    {% endif %}
+                </button>
+
+                <button id="openModalBlokir" class="{% if not user_block %} bg-gray-500 {% else %} bg-red-600 hover:bg-red-800 {% endif %} text-white px-4 py-1 rounded-md transition-colors"
+                    {% if not user_block %} disabled {% endif %}>
+                    <!-- <pre>{{ user_block | tojson }}</pre> -->
+                    Daftar Blokir
+                </button>
+
+                <div id="modalBlokir" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                      <h2 class="text-xl font-bold mb-4">Blokir Modal</h2>
+                      <p class="mb-4">This is a simple modal.</p>
+                      <button id="closeModalBlokir" class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-1 rounded-md transition-colors">
+                        Close
+                      </button>
+                    </div>
+                </div>              
+            </div>            
+
+            {% with messages = get_flashed_messages(with_categories = true) %}
+                {% if messages %}
+                    <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                        {% for category, message in messages %}
+                            <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="overflow-x-auto mt-4">
+                <table class="w-full bg-white rounded-lg overflow-hidden">
+                    <thead class="bg-amber-400">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-sm">IP Address</th>
+                            <th class="px-4 py-2 text-left text-sm">Nama Pengguna</th>
+                            <th class="px-4 py-2 text-left text-sm">Status</th>
+                            <th class="px-4 py-2 text-left text-sm">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if not data_user %}
+                            <tr>
+                                <td class="px-4 py-2 text-center text-sm" colspan="3">Tidak ada data</td>
+                            </tr>
+                        {% else %}
+                            {% for data_user in data_user %}
+                                <!-- <pre>{{ data_user | tojson }}</pre> -->
+                                <tr class="border-t">
+                                    <td class="px-4 py-2 text-left text-sm">{{ data_user.address }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">{{ data_user.hostname }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">Wireless nya nunggu</td>
+                                    <!-- <td class="px-4 py-2 text-left text-sm">{{ data_user.status}}</td> -->
+                                    <td class="px-4 py-2 text-left text-sm">
+                                        <form id="delete-form-{{ data_user.mac_address }}" action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}" method="POST">
+                                            <!-- <button type="button"
+                                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-md text-sm transition-colors"
+                                                onclick="showEditModal()">
+                                                Edit
+                                            </button> -->
+                                            
+                                            <button type="button" onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
+                                                class="bg-red-500 hover:bg-red-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
+                                                Blokir
+                                            </button>
+                                        </form>
+                                        
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>            
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            const dropdownButtons = document.querySelectorAll('[data-dropdown-toggle]');
+            dropdownButtons.forEach(button => {
+                const targetId = button.getAttribute('data-dropdown-toggle');
+                const target = document.getElementById(targetId);
+
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    target.classList.toggle('hidden');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!button.contains(e.target) && !target.contains(e.target)) {
+                        target.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+    </script>
+
+    <script>
+        document.getElementById("openModalWireless").addEventListener("click", () => {
+            Swal.fire({
+                title: 'Tambah Wireless',
+                width: '32rem',
+                background: '#3f3f46', // zinc-800
+                color: '#ffffff',
+                html: `
+                    <form id="wirelessForm">
+                        
+                        <div class="overflow-x-auto mt-3">
+                            <label for="Wireless" class="block font-normal mb-2 text-white">Nama Wireless</label>
+                            <div class="flex items-center rounded-md bg-white pl-2">
+                                <input type="text" name="name" class="w-full p-2 text-base text-gray-900 focus:outline-none sm:text-sm" required>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="password" class="block font-normal mb-2 text-white">Password</label>
+                            <input name="password" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" minlength="8" type="password" required>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="pool_range" class="block font-normal mb-2 text-white">Jumlah Pengguna</label>
+                            <input name="pool_range" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number" max="254" required>
+                        </div>
+
+                        <div class="mt-3 invisible">
+                            <label for="ip_address" class="block font-normal mb-2 text-white">Select IP Address</label>
+                            <select id="ip_address" name="ip_address" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
+                                <option value="192.168.10.1/24"></option>
+                            </select>
+                        </div>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                cancelButtonText: 'Tutup',
+                confirmButtonColor: '#43A047', // amber-500
+                cancelButtonColor: '#ef4444', // red-500
+                preConfirm: () => {
+                    const form = document.getElementById('wirelessForm');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return false;
+                    }
+                    const formData = new FormData(form);
+
+                    return fetch("{{ url_for('wireless') }}", {  // Ganti URL sesuai dengan rute Flask
+                        method: "POST",
+                        body: formData,
+                    })
+                    .then(response => response.json()) 
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", "Wireless berhasil ditambahkan!", "success")
+                            .then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error || "Terjadi kesalahan", "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
+                }
+            });
+        });
+
+        document.getElementById("openModalBlokir").addEventListener("click", () => {
+        document.getElementById("modalBlokir").classList.remove("hidden");
+        });
+
+        document.getElementById("closeModalBlokir").addEventListener("click", () => {
+        document.getElementById("modalBlokir").classList.add("hidden");
+        });
+
+        window.addEventListener("click", (e) => {
+        if (e.target === document.getElementById("modalBlokir")) {
+            document.getElementById("modalBlokir").classList.add("hidden");
+        }
+        });
+        
+        function deleteUser(index) {
+            window.currentBlockUser.splice(index, 1); // hapus dari array lokal
+            document.getElementById('openModalBlokir').click(); // buka ulang Swal
+        }
+
+        function showEditModal(address, download, upload) {
+            Swal.fire({
+                fontFamily: "Inter",
+                title: 'Atur Bandwith',
+                background: '#3f3f46',
+                color: '#ffffff',
+                html: `
+                    <form id="editForm">
+                        <input name="address" type="number" placeholder="Download Speeds : 20 (Mb)" 
+                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            >
+                        <input name="address" type="number" placeholder="Upload Size : 20 (Mb)" 
+                            class="w-[380px] p-2 rounded-md bg-white mt-2 text-base text-gray-900 focus:outline-none sm:text-sm"
+                            >
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                confirmButtonColor: '#43A047',
+                cancelButtonColor: '#ef4444',
+                preConfirm: () => {
+                    let form = document.getElementById('editForm');
+                    let address = form.querySelector('input[name="address"]').value.trim();
+                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
+                    let interface = form.querySelector('select[name="interface"]').value.trim();
+
+                    // **VALIDASI: Pastikan semua field terisi**
+                    if (!address || !prefix || !interface) {
+                        Swal.showValidationMessage("Semua field harus diisi!");
+                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
+                    }
+
+                    let formData = new FormData(form);
+
+                    return fetch(`/change_ip/${id}`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", data.message, "success").then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error, "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
+                }
+            });
+        }
+
+        function confirmDelete(mac_address, hostname) {
+            Swal.fire({
+                title: "Apakah Anda yakin?",
+                text: `User ${hostname} akan dihapus!`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Ya, Hapus!",
+                cancelButtonText: "Batal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/delete_wireless/${mac_address}`, { 
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                hostname: hostname
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Success", data.success, "success")
+                                    .then(() => location.reload()); // Reload halaman setelah sukses
+                            } else {
+                                Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
+                }
+            });
+        }
+
+        function unblockMac(mac) {
+            Swal.fire({
+                title: "Apakah Anda yakin?",
+                text: `Hapus blokir MAC: ${mac}?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Ya, Hapus!",
+                cancelButtonText: "Batal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/unblock_mac/${mac}`, { method: "POST" })  // Rute Flask unblock
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Success", "Blokir berhasil dihapus!", "success")
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire("Error", data.error || "Terjadi kesalahan", "error");
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
+                }
+            });
+        }
+
+    </script>
+    
+</body>
+</html>
