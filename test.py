@@ -1,13 +1,20 @@
+<<<<<<< Updated upstream
 from flask import Flask, request, render_template, redirect, url_for, flash, session
 import paramiko
 import uuid
 import time
+=======
+from flask import Flask, request
+>>>>>>> Stashed changes
 
 app = Flask(__name__)
-app.secret_key = "apalah"
 
-ssh_connections = {}
+@app.route('/get_ip')
+def get_ip():
+    user_ip = request.remote_addr
+    return f"IP Anda: {user_ip}"
 
+<<<<<<< Updated upstream
 # Def akan di eksekusi sesudah di panggil di def login
 def ssh_connect(host, username, password, port):
     try:
@@ -453,3 +460,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+=======
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+>>>>>>> Stashed changes

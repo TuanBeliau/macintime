@@ -62,7 +62,7 @@
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             System Settings
                         </a>
-                        <a href="{{ url_for('dhcp') }}"
+                        <a href="{{ url_for('wireless') }}"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             DHCP Setup
                         </a>
@@ -95,50 +95,11 @@
 
             <p class="text-center text-white text-sm sm:text-base">Berhasil masuk ke MikroTik dengan IP:</p>
             <p class="text-center font-semibold text-base sm:text-lg text-white mb-6">{{ host }}</p>
-            <div class="overflow-x-auto mt-3">
-                <label for="password" class="block font-medium text-white">Tambah IP Address</label>
-                <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
-                    <input type="text" name="xx"
-                        class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
-                </div>
-            </div>
-
-            <!-- Dropdown button and menu -->
-            <div class="mt-3">
-                <label for="interface" class="block font-medium text-white">Select Interface</label>
-                <div class="relative">
-                    <button id="dropdownDefaultButton" data-dropdown-toggle="dropdown"
-                        class="w-full flex items-center justify-between rounded-md bg-white pl-2 text-gray-400 p-2 text-base sm:text-sm focus:outline-none">
-                        Interface
-                        <svg class="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd"
-                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                clip-rule="evenodd"></path>
-                        </svg>
-                    </button>
-
-                    <div id="dropdown"
-                        class="z-10 hidden absolute w-full mt-1 bg-white divide-y divide-gray-100 rounded-md shadow-lg">
-                        <ul class="py-2 text-sm text-gray-900" aria-labelledby="dropdownDefaultButton">
-                            <li>
-                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">ether1</a>
-                            </li>
-                            <li>
-                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">ether2</a>
-                            </li>
-                            <li>
-                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">ether3</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
+            
             <div class="mt-4 justify-center flex">
                 <button type="submit"
-                    class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors">
-                    Tambah
+                    class="bg-green-600 hover:bg-green-800 text-white px-4 py-1 rounded-md transition-colors" 
+                    onclick="showCreateModal()">Tambah IP</button>
                 </button>
             </div>
             <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Daftar IP Address</h3>
@@ -153,23 +114,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for ip in ip_list %}
+                        {% for ip in ip_list|sort(attribute="interface") %}
                         <tr class="border-t">
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.interface }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.address }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm">{{ ip.status }}</td>
                             <td class="px-1 sm:px-4 py-2 text-sm text-center">
-                                <form action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
+                                <form id="delete-form-{{ ip.id }}" action="{{ url_for('delete_ip', id=ip.id) }}" method="POST">
                                     <!-- Replace modal with button that triggers SweetAlert -->
                                     <button type="button"
-                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
-                                        {% if ip.status=="dynamic" %} disabled {% endif %}
-                                        onclick="showEditModal('{{ ip.id }}', '{{ ip.interface }}')">
+                                        class="{% if ip.status == 'otomatis' or ip.status == 'disabled' %} bg-gray-500 {% else %} bg-blue-500 hover:bg-blue-600 {% endif %} text-white px-4 py-1 rounded-md text-sm transition-colors"
+                                        {% if ip.status=="otomatis" or ip.status == 'disabled' %} disabled {% endif %}
+                                        onclick="showEditModal('{{ ip.id }}', '{{ ip.address_pure }}', '{{ ip.prefix }}', '{{ ip.interface }}')">
                                         Ubah
                                     </button>
-                                    <button type="submit"
-                                        class="{% if ip.status == 'dynamic' %} bg-gray-500 hover:bg-gray-700 {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors"
-                                        {% if ip.status=="dynamic" %} disabled {% endif %}>
+                                    <button onclick="confirmDelete('{{ ip.id }}')" type="button"
+                                        class="{% if ip.status == 'otomatis' or ip.status == 'disabled' %} bg-gray-500 {% else %} bg-red-500 hover:bg-red-600 {% endif %} text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors"
+                                        {% if ip.status=="otomatis" %} disabled {% endif %}>
                                         Hapus
                                     </button>
                                 </form>
@@ -187,6 +148,7 @@
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('-translate-x-full');
         }
+        
         document.addEventListener('DOMContentLoaded', function () {
             const dropdownButtons = document.querySelectorAll('[data-dropdown-toggle]');
             dropdownButtons.forEach(button => {
@@ -207,40 +169,162 @@
             });
         });
 
-        function showEditModal(id, interface) {
+        function showEditModal(id, address_pure, prefix, interface) {
             Swal.fire({
                 fontFamily: "Inter",
                 title: 'Edit IP Address',
                 background: '#3f3f46',
                 color: '#ffffff',
                 html: `
-                    <form id="editForm" action="{{ url_for('change_ip', id='') }}/${id}" method="POST">
+                    <form id="editForm">
                         <label class="block text-sm font-medium text-gray-700">IP Address</label>
-                        <input name="address" type="text"
-                            class="w-[272px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            placeholder="Masukkan IP Address">
+                        <input name="address" type="text" 
+                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            value="${address_pure}" required>
                         /
                         <input name="prefix" type="number"
-                            class="w-[50px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm" placeholder="24">
+                            class="w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            value="${prefix}" required>
                         <label class="block text-sm font-medium text-gray-700">Interface</label>
                         <select name="interface"
-                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none">
-                            <option default>${interface}</option>
+                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
+                            <option selected>${interface}</option>
                             {% for ip in interfaces %}
-                            <option value="{{ ip }}" required>{{ ip }}</option>
+                                <option value="{{ ip }}">{{ ip }}</option>
                             {% endfor %}
                         </select>
                     </form>
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Save',
-                confirmButtonColor: '#43A047', // amber-500
-                cancelButtonColor: '#ef4444', // red-500
+                confirmButtonColor: '#43A047',
+                cancelButtonColor: '#ef4444',
                 preConfirm: () => {
-                    document.getElementById('editForm').submit();
+                    let form = document.getElementById('editForm');
+                    let address = form.querySelector('input[name="address"]').value.trim();
+                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
+                    let interface = form.querySelector('select[name="interface"]').value.trim();
+
+                    // **VALIDASI: Pastikan semua field terisi**
+                    if (!address || !prefix || !interface) {
+                        Swal.showValidationMessage("Semua field harus diisi!");
+                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
+                    }
+
+                    let formData = new FormData(form);
+
+                    return fetch(`/change_ip/${id}`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", data.message, "success").then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error, "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
                 }
             });
         }
+
+        function showCreateModal(id, address_pure, prefix, interface) {
+            Swal.fire({
+                fontFamily: "Inter",
+                title: 'Create IP Address',
+                background: '#3f3f46',
+                color: '#ffffff',
+                html: `
+                    <form id="createForm">
+                        <label class="block text-sm font-medium text-gray-700">IP Address</label>
+                        <input name="address" type="text" placeholder="192.168.88.1" 
+                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            >
+                        /
+                        <input name="prefix" type="number" placeholder="24" 
+                            class="w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
+                            >
+                        <label class="block text-sm font-medium text-gray-700">Interface</label>
+                        <select name="interface"
+                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
+                            <option selected>-- Pilih Interface --</option>
+                            {% for ip in interfaces %}
+                                <option value="{{ ip }}">{{ ip }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                confirmButtonColor: '#43A047',
+                cancelButtonColor: '#ef4444',
+                preConfirm: () => {
+                    let form = document.getElementById('createForm');
+                    let address = form.querySelector('input[name="address"]').value.trim();
+                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
+                    let interface = form.querySelector('select[name="interface"]').value.trim();
+
+                    // **VALIDASI: Pastikan semua field terisi**
+                    if (!address || !prefix || !interface) {
+                        Swal.showValidationMessage("Semua field harus diisi!");
+                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
+                    }
+
+                    let formData = new FormData(form);
+
+                    return fetch(`/add_ip`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Success", data.message, "success").then(() => location.reload());
+                        } else {
+                            Swal.fire("Error", data.error, "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                    });
+                }
+            });
+        }
+
+        function confirmDelete(id) {
+            Swal.fire({
+                title: "Apakah Anda yakin?",
+                text: "Data IP akan dihapus!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Ya, Hapus!",
+                cancelButtonText: "Batal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/delete_ip/${id}`, { method: "POST" })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Success", data.message, "success")
+                                    .then(() => location.reload()); // Reload halaman setelah sukses
+                            } else {
+                                Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
+                        });
+                }
+            });
+        }
+
+
     </script>
 </body>
 
