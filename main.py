@@ -513,7 +513,7 @@ def nat():
 
     if request.method == "POST":
         data = request.get_json()
-        website = data['website']
+        website = data['website'] 
 
         if not validators.url(website):
             return jsonify({'success':False, 'error':'Website sudah tidak active'})
