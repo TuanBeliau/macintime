@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wireless Server</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -63,11 +63,7 @@
                         </a>
                         <a href="{{ url_for('wireless') }}"
                             class="block px-4 py-2 text-sm text-white {% if request.path == url_for('wireless') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
-                            DHCP Setup
-                        </a>
-                        <a href="#"
-                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                            Change Bandwidth
+                             Wireless Settings
                         </a>
                         <a href="{{ url_for('nat') }}"
                         class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
@@ -108,10 +104,37 @@
                     Daftar Blokir
                 </button>
 
-                <div id="modalBlokir" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+                <div id="modalBlokir" class="fixed inset-0 flex items-center justify-center bg-black/80 hidden">
                     <div class="bg-white p-6 rounded-lg shadow-md">
-                      <h2 class="text-xl font-bold mb-4">Blokir Modal</h2>
-                      <p class="mb-4">This is a simple modal.</p>
+                        <table class="w-full bg-white rounded-lg overflow-hidden">
+                            <thead class="bg-amber-400">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-sm">Hostname</th>
+                                    <th class="px-4 py-2 text-left text-sm">Mac Address</th>
+                                    <th class="px-4 py-2 text-left text-sm">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user_block in user_block %}
+                                    <!-- tojson buat cek isi -->
+                                    <!-- <pre>{{ user_block | tojson }}</pre> -->
+                                    <tr class="border-t">
+                                        <td class="px-4 py-2 text-left text-sm">{{ user_block.hostname }}</td>
+                                        <td class="px-4 py-2 text-left text-sm">{{ user_block.mac_address }}</td>
+                                        <td class="px-4 py-2 text-left text-sm">
+                                            <form id="unblockForm" method="POST">
+                                                <input type="text" name="action" value="unblock" class="hidden">
+                                                <input type="text" name="mac_address" value="{{ user_block.mac_address }}" class="hidden">
+                                                <button type="submit" id="unblock" class="bg-green-500 hover:bg-green-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
+                                                    Unblock
+                                                </button>
+                                            </form>
+                                            
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                       <button id="closeModalBlokir" class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-1 rounded-md transition-colors">
                         Close
                       </button>
@@ -152,7 +175,7 @@
                                 <tr class="border-t">
                                     <td class="px-4 py-2 text-left text-sm">{{ data_user.address }}</td>
                                     <td class="px-4 py-2 text-left text-sm">{{ data_user.hostname }}</td>
-                                    <td class="px-4 py-2 text-left text-sm">Wireless nya nunggu</td>
+                                    <td class="px-4 py-2 text-left text-sm">{{ data_user.status }}</td>
                                     <!-- <td class="px-4 py-2 text-left text-sm">{{ data_user.status}}</td> -->
                                     <td class="px-4 py-2 text-left text-sm">
                                         <form id="delete-form-{{ data_user.mac_address }}" action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}" method="POST">
@@ -206,6 +229,7 @@
     </script>
 
     <script>
+        // Buat Add wireless
         document.getElementById("openModalWireless").addEventListener("click", () => {
             Swal.fire({
                 title: 'Tambah Wireless',
@@ -232,9 +256,13 @@
                             <input name="pool_range" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number" max="254" required>
                         </div>
 
-                        <div class="mt-3 invisible">
+                        <div class="mt-3 hidden">
+                            <input type="text" name="action" value="addORcreate" required>
+                        </div>
+
+                        <div class="mt-3 hidden">
                             <label for="ip_address" class="block font-normal mb-2 text-white">Select IP Address</label>
-                            <select id="ip_address" name="ip_address" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
+                            <select id="ip_address" name="ip_address" required>
                                 <option value="192.168.10.1/24"></option>
                             </select>
                         </div>
@@ -273,6 +301,7 @@
             });
         });
 
+        // Buat Daftar Blokir User
         document.getElementById("openModalBlokir").addEventListener("click", () => {
         document.getElementById("modalBlokir").classList.remove("hidden");
         });
@@ -292,59 +321,7 @@
             document.getElementById('openModalBlokir').click(); // buka ulang Swal
         }
 
-        function showEditModal(address, download, upload) {
-            Swal.fire({
-                fontFamily: "Inter",
-                title: 'Atur Bandwith',
-                background: '#3f3f46',
-                color: '#ffffff',
-                html: `
-                    <form id="editForm">
-                        <input name="address" type="number" placeholder="Download Speeds : 20 (Mb)" 
-                            class="w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            >
-                        <input name="address" type="number" placeholder="Upload Size : 20 (Mb)" 
-                            class="w-[380px] p-2 rounded-md bg-white mt-2 text-base text-gray-900 focus:outline-none sm:text-sm"
-                            >
-                    </form>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                confirmButtonColor: '#43A047',
-                cancelButtonColor: '#ef4444',
-                preConfirm: () => {
-                    let form = document.getElementById('editForm');
-                    let address = form.querySelector('input[name="address"]').value.trim();
-                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
-                    let interface = form.querySelector('select[name="interface"]').value.trim();
-
-                    // **VALIDASI: Pastikan semua field terisi**
-                    if (!address || !prefix || !interface) {
-                        Swal.showValidationMessage("Semua field harus diisi!");
-                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
-                    }
-
-                    let formData = new FormData(form);
-
-                    return fetch(`/change_ip/${id}`, {
-                        method: "POST",
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Success", data.message, "success").then(() => location.reload());
-                        } else {
-                            Swal.fire("Error", data.error, "error");
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                    });
-                }
-            });
-        }
-
+        // Buat Blokir User
         function confirmDelete(mac_address, hostname) {
             Swal.fire({
                 title: "Apakah Anda yakin?",
@@ -382,35 +359,48 @@
             });
         }
 
-        function unblockMac(mac) {
-            Swal.fire({
-                title: "Apakah Anda yakin?",
-                text: `Hapus blokir MAC: ${mac}?`,
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Ya, Hapus!",
-                cancelButtonText: "Batal"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/unblock_mac/${mac}`, { method: "POST" })  // Rute Flask unblock
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire("Success", "Blokir berhasil dihapus!", "success")
-                                    .then(() => location.reload());
-                            } else {
-                                Swal.fire("Error", data.error || "Terjadi kesalahan", "error");
-                            }
-                        })
-                        .catch(() => {
-                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                        });
-                }
-            });
-        }
+        // Buat Sweet Alert Ublock User
+        document.getElementById('unblock').addEventListener('click', function(e) {
+            e.preventDefault();
 
+            const form = document.getElementById('unblockForm');
+            const formData = new FormData(form)
+
+            fetch("{{ url_for('wireless') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error,
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'success',
+                        title: data.message,
+                        confirmButtonColor: '#3085d6'
+                    })
+                    .then(() => location.reload());
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    fontFamily: "Inter",
+                    icon: 'error',
+                    title: 'Koneksi Error',
+                    text: 'Tidak dapat menghubungi server',
+                    confirmButtonColor: '#3085d6'
+                });
+            });
+        });
+    
     </script>
     
 </body>

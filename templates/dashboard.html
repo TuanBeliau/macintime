@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Macintime</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
@@ -61,11 +61,11 @@
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             System Settings
                         </a>
-                        <a href="{{ url_for('dhcp') }}"
+                        <a href="{{ url_for('wireless') }}"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Wireless Settings
                         </a>
-                        <a href=""
+                        <a href="{{ url_for('nat') }}"
                             class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Setting Firewall
                         </a>
