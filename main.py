@@ -267,28 +267,19 @@ def wireless():
             else :
                 return jsonify({'success':True, 'message':'User Berhasil di Unblock'})
             
-        if action == "addORcreate" :
-            name = request.form["name"] # Untuk edit pastikan value ini di ambil dan di simpan di form edit lalu di ganti dan di jalankan ulang
+        if action == "addORcreate":
+            name = request.form["name"] 
             password = request.form["password"]
+            ip_address = "192.168.10.1/24" 
+            download = request.form['download']
+            upload = request.form['upload']
 
-            if cek_dhcp:
-                ip_Address = "192.168.20.1/24"
-            else:
-                ip_address = request.form["ip_address"]
             pool_range = int(request.form["pool_range"])
 
             gateway, prefix = ip_address.split("/")
             base_ip = gateway.rsplit(".", 1)[0]
-            cek_ip = gateway.split(".")[3]
 
-            if cek_ip == "1":
-                pool_start = f"{base_ip}.2"
-                pool_end = f"{base_ip}.{pool_range + 1}"
-            else:
-                pool_start = f"{base_ip}.1"
-                pool_end = f"{base_ip}.{pool_range}"
-
-            pool_range = f"{pool_start}-{pool_end}"
+            pool_range = f"{base_ip}.2-{base_ip}.{pool_range + 1}"
 
             # Cek interface wlan1
             try:
@@ -437,10 +428,48 @@ def wireless():
                         if error:
                             print(f"Error_wireless: {error}")  # Debugging
                             return error  # Menghentikan eksekusi jika ada error
+                    
+                    command_limiter = f"queue simple add name=bandwith_{name} target={base_ip}.0 max-limit={download}/{upload}"
+                    stdin, stdout, stderr = ssh.exec_command(command_limiter)
+                    if stderr.read().decode():
+                        print(f"Error_queue : {stderr.read().decode()}")
 
             except Exception as e:
                 return jsonify({"error_cmd": str(e)}), 500
 
+        if action == "guest":
+            pools = request.form['pool_range']
+
+            stdin, stdout, stderr = ssh.exec_command('/interface wireless where ssid="GUEST_WIFI" disabled=yes')
+
+            if stdout.read().decode():
+                stdin, stdout, stderr = ssh.exec_command('/interface wiresless set [find where ssid="GUEST_WIFI] disabled=no')
+            else :
+                ip_address = "192.168.20.1/24"
+                base_ip = ip_address.split('/')[0].rsplit('.', 1)
+
+                pool_range = f'{base_ip}.2-{base_ip}.{pools + 1}'  
+
+                try:
+                    commands = [
+                        ("/interface wireless add master-interface=wlan1 name=vap_guest ssid=\"GUEST_WIFI\" vlan-mode=use-tag vlan-id=20", "Failed Make a VAP"),
+                        ("/interface vlan add name=vlan_guest interface=vap_guest vlan-id=20", "Failed Make a Vlan"),
+                        ("/ip address add address=192.168.20.1/24 interface=vlan_guest", "Failed Make a IP Address"),
+                        (f"/ip pool add name=guest_pool ranges={pool_range}", "Failed Make a pool"),
+                        (f"/ip dhcp-server add name=dhcp_guest interface=vlan_guest address-pool=guest_pool", "Failed Make a dhcp-server"),
+                        (f"/ip dhcp-server network add address={base_ip}.0/24 gateway={base_ip}.1", "Failed Make a dhcp-server network")
+                    ]
+
+                    for command, error_message in commands:
+                        stdin, stdout, stderr = ssh.exec_command(command)
+                        error_output = stderr.read().decode()
+
+                        if error_output:
+                            return jsonify({'success': False, 'error': error_message})
+
+                except:
+                    return jsonify({'success': False, 'error':'Gagal print vlan'})
+                
     return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp, user_block=user_block)
 
 # CEK BISA ENGGAK NYA
@@ -556,7 +585,7 @@ def nat():
             if stderr.read().decode() :
                 return jsonify({'success':False, 'error':'Gagal hapus address list'})
             
-            stdin, stdout, stderr = ssh.exec_command(f"ip firewall filter remove [find where dst-address-list{website}]")
+            stdin, stdout, stderr = ssh.exec_command(f'ip firewall filter remove [find where dst-address-list="{website}]"')
 
             if stderr.read().decode() :
                 return jsonify({'success':False, 'error':'Gagal hapus firewall filter'})
