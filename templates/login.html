@@ -49,7 +49,7 @@
             icon: 'error',
             title: 'Connection Failed',
             text: '{{ error }}',
-            confirmButtonColor: '#3085d6'
+            confirmButtonColor: '#FFCA28'
         }).then((result) => {
             location.reload();
         });
@@ -59,10 +59,13 @@
     <script>
         Swal.fire({
             fontFamily: "Inter",
+            fontColor: "#FFFFFF",
             icon: 'success',
+            background: '#3f3f46',
+            color: '#ffffff',
             title: 'Connection Success',
-            text: 'Berhasil Login!',
-            confirmButtonColor: '#3085d6'
+            text: 'Login Successful!',
+            confirmButtonColor: '#FFCA28'
         }).then((result) => {
             window.location.href = "{{ url_for('dashboard') }}";
         });

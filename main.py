@@ -237,10 +237,10 @@ def wireless():
 
         if not matches_1 :
             data_user = [{
-                "address": "Kosong",
-                "mac_address": "Kosong",
-                "status": "Kosong",
-                "hostname": "Kosong"
+                "address": "Empty",
+                "mac_address": "Empty",
+                "status": "Empty",
+                "hostname": "Empty"
             }]
         else :
             data_user = [{
@@ -263,9 +263,9 @@ def wireless():
             stdin, stdout, stderr = ssh.exec_command(f"/interface wireless access-list remove [find where mac-address={mac_address}]")
 
             if stderr.read().decode():
-                return jsonify({'success':False, 'error':'Gagal Hapus Mac-Address'})
+                return jsonify({'success':False, 'error':'Failed to remove MAC address'})
             else :
-                return jsonify({'success':True, 'message':'User Berhasil di Unblock'})
+                return jsonify({'success':True, 'message':'User Succesfully Unblocked'})
             
         if action == "addORcreate":
             name = request.form["name"] 
@@ -552,12 +552,12 @@ def nat():
 
                 pattern = re.findall(r'list=([\w\.]+)', output)
                 if website in pattern :
-                    return jsonify({"success":False, 'error':'Website sudah diblokir'})
+                    return jsonify({"success":False, 'error':'Website already blocked'})
             except:
                 return jsonify({'success':False, 'error':'Gak bisa ngeprint'})
 
             if not validators.url(f'https://{website}'):
-                return jsonify({'success':False, 'error':'Website sudah tidak active'})
+                return jsonify({'success':False, 'error':'Website not active'})
 
             stdin, stdout, stderr  = ssh.exec_command(f'/ip firewall address-list add list={website} address={website}')
             address_list = stderr.read().decode()
@@ -574,9 +574,9 @@ def nat():
             }
 
             if filter:
-                return jsonify({'success': True, 'message': f'Website {website} berhasil di blokir'})
+                return jsonify({'success': True, 'message': f'Website {website} Successfully blocked'})
             else:
-                return jsonify({'success': False, 'error':'Gagal memblokir'})
+                return jsonify({'success': False, 'error':'Failed to block website'})
 
         else:
             website = data['website']
@@ -588,9 +588,9 @@ def nat():
             stdin, stdout, stderr = ssh.exec_command(f'ip firewall filter remove [find where dst-address-list="{website}]"')
 
             if stderr.read().decode() :
-                return jsonify({'success':False, 'error':'Gagal hapus firewall filter'})
+                return jsonify({'success':False, 'error':'Failed to remove firewall filter'})
             
-            return jsonify({'success':True, 'message':f'Berhasil Unblock {website}'})
+            return jsonify({'success':True, 'message':f'Successfully Unblocked {website}'})
 
     return render_template("nat.html", filter=filter, blocked=blocked)
 # -------------------------------------------

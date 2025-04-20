@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Macintime</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"></script>
@@ -93,18 +93,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
                     </svg>
                 {% else %}
-                    <!-- Taruh Sini Bang -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 sm:w-24 sm:h-24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 8.735 8.735m0 0a.374.374 0 1 1 .53.53m-.53-.53.53.53m0 0L21 21M14.652 9.348a3.75 3.75 0 0 1 0 5.304m2.121-7.425a6.75 6.75 0 0 1 0 9.546m2.121-11.667c3.808 3.807 3.808 9.98 0 13.788m-9.546-4.242a3.733 3.733 0 0 1-1.06-2.122m-1.061 4.243a6.75 6.75 0 0 1-1.625-6.929m-.496 9.05c-3.068-3.067-3.664-7.67-1.79-11.334M12 12h.008v.008H12V12Z" />
+                    </svg>                  
                 {% endif %}
                 <div class="flex flex-col gap-2">
                     {% if ssid %}
                         <h3 class="text-base sm:text-2xl text-black font-semibold">{{ ssid }}</h3>
                     {% else %}
-                        <h3 class="text-base sm:text-2xl text-black font-semibold">SSID</h3>
+                        <h3 class="text-base sm:text-2xl text-black font-semibold">No Wireless Connection</h3>
                     {% endif %}
                     {% if speedtest %}
                         <h3 class="text-sm sm:text-lg text-black font-semibold">{{ speedtest.download }}/{{ speedtest.upload }}</h3>
                     {% else %}
-                        <h3 class="text-sm sm:text-lg text-black font-semibold">Download/Speed</h3>
+                        <h3 class="text-sm sm:text-lg text-black font-semibold">Enable Wireless Connection first</h3>
                     {% endif %}
                 </div>
                 <button class="ml-auto {% if ssid and password %} bg-gray-600 hover:bg-gray-800 {% else %} bg-green-600 hover:bg-green-800 {% endif %} text-white text-sm sm:text-base px-6 py-2 rounded-md transition-colors">
@@ -116,14 +118,11 @@
                 </button> 
             </div>
         </div>
-        <button class="{% if speedtest %} bg-blue-600 hover:bg-blue-800 {% else %} bg-gray-600 {% endif %} text-white text-sm sm:text-base px-6 py-2 mt-4 rounded-md transition-colors" 
-        {% if not speedtest %} disabled {% endif %}>
-            {% if speedtest %}
-                Refresh Test Speed
-            {% else %}
-                Aktifkan Wireless Terlebih Dahulu
-            {% endif %}
-        </button>  
+        {% if speedtest %}
+        <button class="bg-blue-600 hover:bg-blue-800 text-white text-sm sm:text-base px-6 py-2 mt-4 rounded-md transition-colors">
+            Refresh Test Speed
+        </button>
+    {% endif %} 
     </div>
 
     <script>
