@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setting</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
@@ -59,7 +59,7 @@
                         </a>
                         <a href="{{ url_for('nat') }}"
                         class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
-                        NAT Settings
+                        Firewall Settings
                         </a>
                     </div>
                 </div>
@@ -109,7 +109,7 @@
                     </div>
                 </div>
                 <div class="mt-4">
-                    <button type="submit" class="bg-amber-400 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition-colors">
+                    <button type="submit" class="bg-amber-400 hover:bg-amber-600 text-white px-4 py-1 rounded-md transition-colors">
                         Save
                     </button>
                 </div>

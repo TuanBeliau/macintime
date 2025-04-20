@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blokir Website</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -60,7 +60,7 @@
                         </a>
                         <a href="{{ url_for('nat') }}"
                         class="block px-4 py-2 text-sm text-white {% if request.path == url_for('nat') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
-                            NAT Setting
+                            Firewall Settings
                         </a>
                     </div>
                 </div>
@@ -87,45 +87,13 @@
 
             <button id="openModalBlokir" class="{% if not blocked %} bg-gray-500 {% else %} bg-red-600 hover:bg-red-800 {% endif %} text-white px-4 py-1 rounded-md transition-colors"
                 {% if not blocked %} disabled {% endif %}>
-                Daftar Blokir
+                Block List
             </button>
-
-            <div id="modalBlokir" class="fixed inset-0 flex items-center justify-center bg-black/80 hidden">
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <table class="w-full bg-white rounded-lg overflow-hidden">
-                        <thead class="bg-amber-400">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-sm">Website</th>
-                                <th class="px-4 py-2 text-left text-sm">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for blocked in blocked %}
-                                <tr class="border-t">
-                                    <td class="px-4 py-2 text-left text-sm">{{ blocked }}</td>
-                                    <td class="px-4 py-2 text-left text-sm">
-                                        <form id="unblockForm" method="POST">
-                                            <input type="text" id="action" value="unblock" class="hidden">
-                                            <input type="text" id="unblockWebsite" value="{{ blocked }}" class="hidden">
-                                            <button type="submit" id="unBlock" class="bg-green-500 hover:bg-green-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
-                                                Unblock
-                                            </button>
-                                        </form>
-                                        
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <button id="closeModalBlokir" class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-1 rounded-md transition-colors">
-                    Close
-                    </button>
-                </div>
-            </div>  
+ 
 
             <form id="urlForm" method="POST">
                 <div class="overflow-x-auto mt-3">
-                    <label for="password" class="block font-medium text-white">Nama Website yang ingin diblokir</label>
+                    <label for="password" class="block font-medium text-white">Block Website using URL</label>
                     <div class="flex items-center rounded-md bg-white pl-2 outline-1 -outline-offset-1 outline-gray-300">
                         <input type="text" name="website" id="blockWebsite" placeholder="example.com"
                             class="w-full p-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm">
@@ -158,8 +126,11 @@
             if (!urlRegex.test(website)) {
                 Swal.fire({
                     icon: 'error',
+                    background: '#3f3f46', // zinc-800
+                    color: '#ffffff',
                     title: 'Invalid URL',
-                    text: 'Tolong Masukkan URL yang benar',
+                    text: 'Please type a valid URL',
+                    confirmButtonColor: '#FFCA28'
                 });
                 return;
             }
@@ -178,16 +149,20 @@
                         fontFamily: "Inter",
                         icon: 'error',
                         title: 'Error',
+                        background: '#3f3f46', // zinc-800
+                        color: '#ffffff',
                         text: data.error,
-                        confirmButtonColor: '#3085d6'
+                        confirmButtonColor: '#FFCA28'
                     })
                     .then(() => location.reload());
                 } else {
                     Swal.fire({
                         fontFamily: "Inter",
                         icon: 'success',
+                        background: '#3f3f46', // zinc-800
+                        color: '#ffffff',
                         title: data.message,
-                        confirmButtonColor: '#3085d6'
+                        confirmButtonColor: '#FFCA28'
                     })
                     .then(() => location.reload());
                 }
@@ -196,83 +171,97 @@
                 Swal.fire({
                     fontFamily: "Inter",
                     icon: 'error',
+                    background: '#3f3f46', // zinc-800
+                    color: '#ffffff',
                     title: 'Koneksi Error',
                     text: 'Tidak dapat menghubungi server',
-                    confirmButtonColor: '#3085d6'
+                    confirmButtonColor: '#FFCA28'
                 })
                 .then(() => location.reload());
             });
         });
         
-        // Buat Modal Unblock Website
+        
         document.getElementById("openModalBlokir").addEventListener("click", () => {
-        document.getElementById("modalBlokir").classList.remove("hidden");
-        });
-
-        document.getElementById("closeModalBlokir").addEventListener("click", () => {
-        document.getElementById("modalBlokir").classList.add("hidden");
-        });
-
-        window.addEventListener("click", (e) => {
-        if (e.target === document.getElementById("modalBlokir")) {
-            document.getElementById("modalBlokir").classList.add("hidden");
-        }
+            Swal.fire({
+                title: 'List Blocked Website',
+                width: '32rem',
+                background: '#3f3f46',
+                color: '#ffffff',
+                html: `
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-lg overflow-hidden">
+                        <thead class="bg-amber-400">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-sm text-black">Website</th>
+                                <th class="px-4 py-2 text-left text-sm text-black">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for blocked in blocked %}
+                                <tr class="border-t">
+                                    <td class="px-4 py-2 text-left text-sm text-black">{{ blocked }}</td>
+                                    <td class="px-4 py-2 text-left text-sm text-black">
+                                        <button onclick="unblockWebsite('{{ blocked }}')" 
+                                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-md text-sm transition-colors">
+                                            Unblock
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            `,
+                showCloseButton: true,
+                showConfirmButton: false,
+            });
         });
         
-        function deleteUser(index) {
-            window.currentBlockUser.splice(index, 1); // hapus dari array lokal
-            document.getElementById('openModalBlokir').click(); // buka ulang Swal
-        }
-        
-        // Buat Proses Unblock Website
-        document.getElementById('unBlock').addEventListener('click', function(e) {
-            e.preventDefault();
-
-            const form = document.getElementById('unblockForm');
-            const action = form.querySelector('input[id="action"]').value;
-            const blocked = form.querySelector('input[id="unblockWebsite"]').value;
-
+        // Add the unblock function
+        function unblockWebsite(website) {
             fetch('/nat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({  
-                    action:action, 
-                    website:blocked })
+                body: JSON.stringify({
+                    action: 'unblock',
+                    website: website
+                })
             })
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
                     Swal.fire({
-                        fontFamily: "Inter",
                         icon: 'error',
                         title: 'Error',
+                        background: '#3f3f46',
+                        color: '#ffffff',
                         text: data.error,
-                        confirmButtonColor: '#3085d6'
-                    })
-                    .then(() => location.reload());
+                        confirmButtonColor: '#FFCA28'
+                    });
                 } else {
                     Swal.fire({
-                        fontFamily: "Inter",
                         icon: 'success',
+                        background: '#3f3f46',
+                        color: '#ffffff',
                         title: data.message,
-                        confirmButtonColor: '#3085d6'
-                    })
-                    .then(() => location.reload());
+                        confirmButtonColor: '#FFCA28'
+                    }).then(() => location.reload());
                 }
             })
             .catch(error => {
                 Swal.fire({
-                    fontFamily: "Inter",
                     icon: 'error',
-                    title: 'Koneksi Error',
-                    text: 'Tidak dapat menghubungi server',
-                    confirmButtonColor: '#3085d6'
-                })
-                .then(() => location.reload());
+                    background: '#3f3f46',
+                    color: '#ffffff',
+                    title: 'Connection Error',
+                    text: 'Server Unresponsive',
+                    confirmButtonColor: '#FFCA28'
+                });
             });
-        });
+        }
     
     </script>
 </body>
