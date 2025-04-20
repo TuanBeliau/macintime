@@ -428,8 +428,55 @@
             });
         });
     
-        // Buat 
+        // Buat Nyalain Guest Mode
         document.getElementById('guestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this)
+
+            fetch("{{ url_for('wireless') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (!data.success) {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'error',
+                        background: '#3f3f46',
+                        color: '#ffffff',
+                        title: 'Error',
+                        text: data.error,
+                        confirmButtonColor: '#FFCA28'
+                    });
+                } else {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'success',
+                        background: '#3f3f46',
+                        color: '#ffffff',
+                        title: data.message,
+                        confirmButtonColor: '#FFCA28'
+                    })
+                    .then(() => location.reload());
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    fontFamily: "Inter",
+                    icon: 'error',
+                    background: '#3f3f46',
+                    color: '#ffffff',
+                    title: 'Connection Error',
+                    text: 'Server Unresponsive',
+                    confirmButtonColor: '#FFCA28'
+                });
+            });
+        });
+
+        // Buat Mati in Guest Mode
+        document.getElementById('guestForm').addEventListener('click', function(e) {
             e.preventDefault();
             const formData = new FormData(this)
 
