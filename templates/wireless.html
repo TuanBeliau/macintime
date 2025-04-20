@@ -90,13 +90,32 @@
             <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Users List</h3>
             <div class="flex justify-between items-center">
                 
-                <button id="openModalWireless" class="bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+                <button id="openModalWireless" class="{% if cek_dhcp %} bg-blue-600 hover:bg-blue-800 {% else %} bg-green-600 hover:bg-green-700 {% endif %} text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
                     {% if cek_dhcp %}
                         Edit Wireless
                     {% else %}
                         Add Wireless
                     {% endif %}
                 </button>
+
+                <div class="flex flex-col items-start">
+                    <form id="guestForm" method="POST">
+                        {% if cek_vlan %}
+                            <input type="hidden" id="action" name="action" value="deactivatingGuest">
+                            <button id="Guest_Wifi" type="submit" 
+                                class="bg-red-600 hover:bg-red-800 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+                                Guest Mode On (Maks 10)
+                            </button>
+                        {% else %}
+                            <input type="hidden" id="action" name="action" value="activatingGuest">
+                            <input type="hidden" id="pool_range" name="pool_range" value="10">
+                            <button id="Guest_Wifi" type="submit" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+                                Guest Mode Off (Maks 10)
+                            </button>
+                        {% endif %}
+                    </form>
+                </div>                
 
                 <button id="openModalBlokir" class="{% if not user_block %} bg-gray-500 {% else %} bg-red-600 hover:bg-red-800 {% endif %} text-white text-sm sm:text-base mt-4 px-4 py-1 rounded-md transition-colors"
                     {% if not user_block %} disabled {% endif %}>
@@ -179,7 +198,8 @@
                                         <td class="px-2 py-2 text-left">
                                             <form id="delete-form-{{ data_user.mac_address }}" action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}" method="POST">
                                                 <button type="button" onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
-                                                    class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto">
+                                                    class="{% if data_user.address == Empty %} bg-red-600 hover:bg-red-700 {% else %}  bg-gray-600 hover:bg-gray-700 {% endif %} text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto"
+                                                    {% if data_user.address == 'Empty' %} disabled {% endif %}>
                                                     Block
                                                 </button>
                                             </form>
@@ -359,7 +379,7 @@
             });
         }
 
-        // Buat Sweet Alert Ublock User
+        // Buat Sweet Alert Unblock User
         document.getElementById('unblock').addEventListener('click', function(e) {
             e.preventDefault();
 
@@ -372,10 +392,11 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log(data);
                 if (!data.success) {
                     Swal.fire({
                         fontFamily: "Inter",
-                        icon: 'error'
+                        icon: 'error',
                         background: '#3f3f46',
                         color: '#ffffff',
                         title: 'Error',
@@ -407,6 +428,53 @@
             });
         });
     
+        // Buat 
+        document.getElementById('guestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this)
+
+            fetch("{{ url_for('wireless') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (!data.success) {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'error',
+                        background: '#3f3f46',
+                        color: '#ffffff',
+                        title: 'Error',
+                        text: data.error,
+                        confirmButtonColor: '#FFCA28'
+                    });
+                } else {
+                    Swal.fire({
+                        fontFamily: "Inter",
+                        icon: 'success',
+                        background: '#3f3f46',
+                        color: '#ffffff',
+                        title: data.message,
+                        confirmButtonColor: '#FFCA28'
+                    })
+                    .then(() => location.reload());
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    fontFamily: "Inter",
+                    icon: 'error',
+                    background: '#3f3f46',
+                    color: '#ffffff',
+                    title: 'Connection Error',
+                    text: 'Server Unresponsive',
+                    confirmButtonColor: '#FFCA28'
+                });
+            });
+        });
+
     </script>
     
 </body>
