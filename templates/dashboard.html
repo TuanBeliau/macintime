@@ -88,20 +88,41 @@
             <h2 class="text-xl sm:text-2xl font-medium text-amber-400 mb-4">Dashboard</h2>
             <div class="bg-amber-400 p-4 sm:p-6 rounded-lg w-full max-w-3xl">
                 <div class="flex items-center gap-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 sm:w-24 sm:h-24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
-                </svg>
+                {% if ssid and password %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 sm:w-24 sm:h-24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                    </svg>
+                {% else %}
+                    <!-- Taruh Sini Bang -->
+                {% endif %}
                 <div class="flex flex-col gap-2">
-                    <h3 class="text-base sm:text-2xl text-black font-semibold">SSID</h3>
-                    <h3 class="text-sm sm:text-lg text-black font-semibold">Download/Speed</h3>
+                    {% if ssid %}
+                        <h3 class="text-base sm:text-2xl text-black font-semibold">{{ ssid }}</h3>
+                    {% else %}
+                        <h3 class="text-base sm:text-2xl text-black font-semibold">SSID</h3>
+                    {% endif %}
+                    {% if speedtest %}
+                        <h3 class="text-sm sm:text-lg text-black font-semibold">{{ speedtest.download }}/{{ speedtest.upload }}</h3>
+                    {% else %}
+                        <h3 class="text-sm sm:text-lg text-black font-semibold">Download/Speed</h3>
+                    {% endif %}
                 </div>
-                <button class="ml-auto bg-green-600 hover:bg-green-800 text-white text-sm sm:text-base px-6 py-2 rounded-md transition-colors">
-                Enable
+                <button class="ml-auto {% if ssid and password %} bg-gray-600 hover:bg-gray-800 {% else %} bg-green-600 hover:bg-green-800 {% endif %} text-white text-sm sm:text-base px-6 py-2 rounded-md transition-colors">
+                {% if ssid and password %}
+                    disable
+                {% else %}
+                    Enable
+                {% endif %}
                 </button> 
             </div>
         </div>
-        <button class="bg-blue-600 hover:bg-blue-800 text-white text-sm sm:text-base px-6 py-2 mt-4 rounded-md transition-colors">
-            Refresh Test Speed
+        <button class="{% if speedtest %} bg-blue-600 hover:bg-blue-800 {% else %} bg-gray-600 {% endif %} text-white text-sm sm:text-base px-6 py-2 mt-4 rounded-md transition-colors" 
+        {% if not speedtest %} disabled {% endif %}>
+            {% if speedtest %}
+                Refresh Test Speed
+            {% else %}
+                Aktifkan Wireless Terlebih Dahulu
+            {% endif %}
         </button>  
     </div>
 
@@ -110,200 +131,6 @@
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('-translate-x-full');
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const dropdownButtons = document.querySelectorAll('[data-dropdown-toggle]');
-            dropdownButtons.forEach(button => {
-                const targetId = button.getAttribute('data-dropdown-toggle');
-                const target = document.getElementById(targetId);
-
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    target.classList.toggle('hidden');
-                });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!button.contains(e.target) && !target.contains(e.target)) {
-                        target.classList.add('hidden');
-                    }
-                });
-            });
-        });
-
-        function showEditModal(id, address_pure, prefix, interface) {
-            Swal.fire({
-                fontFamily: "Inter",
-                title: 'Edit IP Address',
-                background: '#3f3f46',
-                color: '#ffffff',
-                html: `
-                    <form id="editForm">
-                        <label class="block text-sm font-medium text-gray-700">IP Address</label>
-                        <input name="address" type="text" 
-                            class="w-40 sm:w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            value="${address_pure}" required>
-                        /
-                        <input name="prefix" type="number"
-                            class="w-1/4 sm:w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            value="${prefix}" required>
-                        <label class="block text-sm font-medium text-gray-700">Interface</label>
-                        <select name="interface"
-                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
-                            <option selected>${interface}</option>
-                            {% for ip in interfaces %}
-                                <option value="{{ ip }}">{{ ip }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                confirmButtonColor: '#43A047',
-                cancelButtonColor: '#ef4444',
-                preConfirm: () => {
-                    let form = document.getElementById('editForm');
-                    let address = form.querySelector('input[name="address"]').value.trim();
-                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
-                    let interface = form.querySelector('select[name="interface"]').value.trim();
-
-                    // **VALIDASI: Pastikan semua field terisi**
-                    if (!address || !prefix || !interface) {
-                        Swal.showValidationMessage("Semua field harus diisi!");
-                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
-                    }
-
-                    let formData = new FormData(form);
-
-                    return fetch(`/change_ip/${id}`, {
-                        method: "POST",
-                        body: formData
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire("Success", data.message, "success").then(() => location.reload());
-                            } else {
-                                Swal.fire("Error", data.error, "error");
-                            }
-                        })
-                        .catch(() => {
-                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                        });
-                }
-            });
-        }
-
-        function showCreateModal(id, address_pure, prefix, interface) {
-            Swal.fire({
-                fontFamily: "Inter",
-                title: 'Create IP Address',
-                background: '#3f3f46',
-                color: '#ffffff',
-                html: `
-                    <form id="createForm">
-                        <label class="block text-sm font-medium text-white">IP Address</label>
-                        <input name="address" type="text" placeholder="192.168.88.1" 
-                            class="w-40 sm:w-[380px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            >
-                        /
-                        <input name="prefix" type="number" placeholder="24" 
-                            class="w-1/4 sm:w-[56px] p-2 rounded-md bg-white text-base text-gray-900 focus:outline-none sm:text-sm"
-                            >
-                        <label class="block text-sm font-medium text-white">Interface</label>
-                        <select name="interface"
-                            class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" required>
-                            <option disable selected>Pilih Interface</option>
-                            {% for ip in interfaces %}
-                                <option value="{{ ip }}">{{ ip }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                confirmButtonColor: '#43A047',
-                cancelButtonColor: '#ef4444',
-                preConfirm: () => {
-                    let form = document.getElementById('createForm');
-                    let address = form.querySelector('input[name="address"]').value.trim();
-                    let prefix = form.querySelector('input[name="prefix"]').value.trim();
-                    let interface = form.querySelector('select[name="interface"]').value.trim();
-
-                    // **VALIDASI: Pastikan semua field terisi**
-                    if (!address || !prefix || !interface) {
-                        Swal.showValidationMessage("Semua field harus diisi!");
-                        return false;  // **Gagal validasi, SweetAlert tidak akan lanjut**
-                    }
-
-                    let formData = new FormData(form);
-
-                    return fetch(`/add_ip`, {
-                        method: "POST",
-                        body: formData
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    fontFamily: "Inter",
-                                    title: "Success",
-                                    text: "IP berhasil ditambah!",
-                                    background: '#3f3f46',
-                                    color: '#ffffff',
-                                    icon: "success",
-                                    confirmButtonColor: "#F59E0B",
-                                }).then(() => location.reload());
-                            } else {
-                                Swal.fire("Error", data.error, "error");
-                            }
-                        })
-                        .catch(() => {
-                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                        });
-                }
-            });
-        }
-
-        function confirmDelete(id) {
-            Swal.fire({
-                title: "Apakah Anda yakin?",
-                text: "Data IP akan dihapus!",
-                background: '#3f3f46',
-                color: '#ffffff',
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#43A047",
-                cancelButtonColor: "#ef4444",
-                confirmButtonText: "Ya, Hapus!",
-                cancelButtonText: "Batal"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/delete_ip/${id}`, {method: "POST"})
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    fontFamily: "Inter",
-                                    title: "Success",
-                                    text: "IP berhasil dihapus!",
-                                    background: '#3f3f46',
-                                    color: '#ffffff',
-                                    icon: "success",
-                                    confirmButtonColor: "#F59E0B",
-                                }).then(() => location.reload()); // Reload halaman setelah sukses
-                            } else {
-                                Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
-                            }
-                        })
-                        .catch(() => {
-                            Swal.fire("Error", "Tidak dapat menghubungi server", "error");
-                        });
-                }
-            });
-        }
-
-
     </script>
 </body>
 

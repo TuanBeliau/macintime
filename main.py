@@ -67,7 +67,7 @@ def login() :
     
     return render_template("login.html", error=error, berhasil=berhasil)
 
-# Bagian Dashboard (BELUM SELESAI)
+# CEK BISA ENGGAK NYA
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     if not session.get("logged_in"):
@@ -80,34 +80,32 @@ def dashboard():
         return redirect(url_for("login"))
 
     # Cek, jika wireless ada, maka ambil ssid dan lakukan bandwith test
-    speedtest = None
+    speedtest = {}
     password = None
     ssid = None
 
     try:
-        stdin, stdout, stderr = ssh.exec_command("/wireless print detail")
+        stdin, stdout, stderr = ssh.exec_command("/interface wireless print detail")
         output = stdout.read().decode()
 
-        # pattern = re.search('wpa-pre-shared-key="([^"]+)"(?:.*ssid="([^"\n]+))?', output)
-        pattern = re.search(r'wpa-pre-shared-key="([^"]+)".*ssid="([^"/n]+)"', output)
+        # Untuk Ambil SSID dan Password
+        cek_wireless = re.search(r'wpa-pre-shared-key="([^"]+)".*?ssid="([^"]+)"', output, re.DOTALL)
 
-        if pattern :
-            password = pattern.group(1)
-            ssid = pattern.group(2)
+        if cek_wireless :
+            password = cek_wireless.group(1)
+            ssid = cek_wireless.group(2)
 
             stdin, stdout, stderr = ssh.exec_command("/tool speed-test address=speedtest.telkom.net.id")
             output = stdout.read().decode()
 
-            pattern_1 = re.search(r'download-mbps:/s([/d.]+).*upload-mbps:/s([/d.]+)')
+            # Untuk cek kecepatan
+            speedtest = re.search(r'download-mbps:\s([\d.]+).*upload-mbps:\s([\d.]+)', output, re.DOTALL)
 
-            if pattern_1 : 
+            if speedtest : 
                 speedtest = {
-                    'download' : pattern_1.group(1),
-                    'upload' : pattern_1.group(2)
+                    'download' : speedtest.group(1),
+                    'upload' : speedtest.group(2)
                 }
-
-            pattern = re.search('')
-
 
     except Exception as e:
         return jsonify({'success': False, 'error':str(e)})
