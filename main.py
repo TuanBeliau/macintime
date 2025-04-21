@@ -297,11 +297,11 @@ def wireless():
                 stdin, stdout, stderr = ssh.exec_command("/interface wireless find where disabled=yes")
                 output = stdout.read().decode()
 
-                if not output :
+                if output :
                     interface_wlan =[line.split()[1] for line in output.splitlines() if "wlan" in line]
 
                     if interface_wlan:
-                        stdin, stdout, stderr = ssh.exec_command(f"/interface wireless enable {interface_wlan[0]}")
+                        stdin, stdout, stderr = ssh.exec_command(f"/interface wireless set enable {interface_wlan[0]}")
             
             except Exception as e:
                 return jsonify({"Error_activatingWlan1": {e}})
@@ -372,13 +372,20 @@ def wireless():
             # Menjalankan command utama
             try:
                 if cek_dhcp:
-                    stdin, stdout, stderr = ssh.exec_command(f"/interface wireless security-profiles set [find where name=] wpa-pre-shared-key={password} wpa2-pre-shared-key={password}")
+                    stdin, stdout, stderr = ssh.exec_command('/interface wireless security-profiles print detail')
+                    output = stdout.read().decode()
+
+                    # Cari nama profile yang diawali "security_"
+                    pattern = r'name="(security_[\w\d_-]+)"'
+                    profiles = re.findall(pattern, output)
+
+                    stdin, stdout, stderr = ssh.exec_command(f'/interface wireless security-profiles set [find where name="{profiles[0]}"] name="{name}" wpa-pre-shared-key={password} wpa2-pre-shared-key={password}')
                     error_security = stderr.read().decode() 
 
                     if error_security:
-                        return error_security
+                        print(profiles[0])
 
-                    stdin, stdout, stderr = ssh.exec_command(f"/wireless set [find where interface=wlan1] ssid={name}")
+                    stdin, stdout, stderr = ssh.exec_command(f"/interface wireless set [find where interface=wlan1] ssid={name}")
                     error_ssid = stderr.read().decode()
 
                     if error_ssid:
@@ -415,7 +422,7 @@ def wireless():
                     # Menjalankan command dhcp
                     command_dhcp = [
                         f"/ip dhcp-server network add address={base_ip}.0/{prefix} gateway={gateway} dns-server=8.8.8.8",
-                        f"/ip dhcp-server add name=dhcp_{name} interface={interface} address-pool=pool_{name} lease-time=12m disabled=no"
+                        f"/ip dhcp-server add name=dhcp_{name} interface=wlan1 address-pool=pool_{name} lease-time=12m disabled=no"
                     ]
 
                     for cmd in command_dhcp:
@@ -429,7 +436,7 @@ def wireless():
                     # Menjalankan command wireless
                     command_wireless = [
                         f"/interface wireless security-profiles add name=security_{name} mode=dynamic-keys authentication-types=wpa-psk,wpa2-psk wpa-pre-shared-key={password}  wpa2-pre-shared-key={password}",
-                        f"/interface wireless set {interface} mode=ap-bridge ssid={name} security-profile=security_{name}"
+                        f"/interface wireless set wlan1 mode=ap-bridge ssid={name} security-profile=security_{name}"
                     ]
 
                     for cmd in command_wireless:
@@ -519,9 +526,9 @@ def delete_wireless(mac_address):
         if error_block:
             return jsonify({"success": False, "Gagal Memblokir": error_block})
         
-        stdin, stdout, stderr= ssh.exec_command(f"/ip dhcp-server lease remove [find where mac-address={mac_address}]")
+        stdin, stdout, stderr_ini= ssh.exec_command(f"/ip dhcp-server lease remove [find where mac-address={mac_address}]")
 
-        if stderr.read().decode():
+        if stderr_ini.read().decode():
             return jsonify({'success':False, 'error':'Gagal Hapus Mac-Address'})
         else :
             return jsonify({"success": True, "success": f"User {hostname} Berhasil di Blokir"})

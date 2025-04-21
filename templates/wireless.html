@@ -191,6 +191,7 @@
                                 </tr>
                             {% else %}
                                 {% for data_user in data_user %}
+                                    <!-- <pre>{{ data_user | tojson }}</pre> -->
                                     <tr class="border-t">
                                         <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.address }}</td>
                                         <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.hostname }}</td>
