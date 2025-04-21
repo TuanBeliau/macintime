@@ -63,10 +63,10 @@
                         </a>
                         <a href="{{ url_for('wireless') }}"
                             class="block px-4 py-2 text-sm text-white {% if request.path == url_for('wireless') %} bg-amber-400 {% else %} hover:bg-amber-400 {% endif %} rounded-md transition-colors">
-                             Wireless Settings
+                            Wireless Settings
                         </a>
                         <a href="{{ url_for('nat') }}"
-                        class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
+                            class="block px-4 py-2 text-sm text-white hover:bg-amber-400 rounded-md transition-colors">
                             Firewall Settings
                         </a>
                     </div>
@@ -89,35 +89,37 @@
 
             <h3 class="text-base sm:text-lg text-white font-semibold mt-6 text-center">Users List</h3>
             <div class="flex justify-between items-center">
-                
-                <button id="openModalWireless" class="{% if cek_dhcp %} bg-blue-600 hover:bg-blue-800 {% else %} bg-green-600 hover:bg-green-700 {% endif %} text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+
+                <button id="openModalWireless"
+                    class="{% if cek_dhcp %} bg-blue-600 hover:bg-blue-800 {% else %} bg-green-600 hover:bg-green-700 {% endif %} text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
                     {% if cek_dhcp %}
-                        Edit Wireless
+                    Edit Wireless
                     {% else %}
-                        Add Wireless
+                    Add Wireless
                     {% endif %}
                 </button>
 
                 <div class="flex flex-col items-start">
                     <form id="guestForm" method="POST">
                         {% if cek_vlan %}
-                            <input type="hidden" id="action" name="action" value="deactivatingGuest">
-                            <button id="Guest_Wifi" type="submit" 
-                                class="bg-red-600 hover:bg-red-800 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
-                                Guest Mode On (Maks 10)
-                            </button>
+                        <input type="hidden" id="action" name="action" value="deactivatingGuest">
+                        <button id="Guest_Wifi" type="submit"
+                            class="bg-red-600 hover:bg-red-800 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+                            Guest Mode On (Maks 10)
+                        </button>
                         {% else %}
-                            <input type="hidden" id="action" name="action" value="activatingGuest">
-                            <input type="hidden" id="pool_range" name="pool_range" value="10">
-                            <button id="Guest_Wifi" type="submit" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
-                                Guest Mode Off (Maks 10)
-                            </button>
+                        <input type="hidden" id="action" name="action" value="activatingGuest">
+                        <input type="hidden" id="pool_range" name="pool_range" value="10">
+                        <button id="Guest_Wifi" type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base px-4 py-1 mt-4 rounded-md transition-colors">
+                            Guest Mode Off (Maks 10)
+                        </button>
                         {% endif %}
                     </form>
-                </div>                
+                </div>
 
-                <button id="openModalBlokir" class="{% if not user_block %} bg-gray-500 {% else %} bg-red-600 hover:bg-red-800 {% endif %} text-white text-sm sm:text-base mt-4 px-4 py-1 rounded-md transition-colors"
+                <button id="openModalBlokir"
+                    class="{% if not user_block %} bg-gray-500 {% else %} bg-red-600 hover:bg-red-800 {% endif %} text-white text-sm sm:text-base mt-4 px-4 py-1 rounded-md transition-colors"
                     {% if not user_block %} disabled {% endif %}>
                     <!-- <pre>{{ user_block | tojson }}</pre> -->
                     Block List
@@ -135,42 +137,45 @@
                             </thead>
                             <tbody>
                                 {% for user_block in user_block %}
-                                    <!-- tojson buat cek isi -->
-                                    <!-- <pre>{{ user_block | tojson }}</pre> -->
-                                    <tr class="border-t">
-                                        <td class="px-4 py-2 text-left text-sm">{{ user_block.hostname }}</td>
-                                        <td class="px-4 py-2 text-left text-sm">{{ user_block.mac_address }}</td>
-                                        <td class="px-4 py-2 text-left text-sm">
-                                            <form id="unblockForm" method="POST">
-                                                <input type="text" name="action" value="unblock" class="hidden">
-                                                <input type="text" name="mac_address" value="{{ user_block.mac_address }}" class="hidden">
-                                                <button type="submit" id="unblock" class="bg-green-500 hover:bg-green-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
-                                                    Unblock
-                                                </button>
-                                            </form>
-                                            
-                                        </td>
-                                    </tr>
+                                <!-- tojson buat cek isi -->
+                                <!-- <pre>{{ user_block | tojson }}</pre> -->
+                                <tr class="border-t">
+                                    <td class="px-4 py-2 text-left text-sm">{{ user_block.hostname }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">{{ user_block.mac_address }}</td>
+                                    <td class="px-4 py-2 text-left text-sm">
+                                        <form id="unblockForm" method="POST">
+                                            <input type="text" name="action" value="unblock" class="hidden">
+                                            <input type="text" name="mac_address" value="{{ user_block.mac_address }}"
+                                                class="hidden">
+                                            <button type="submit" id="unblock"
+                                                class="bg-green-500 hover:bg-green-600 text-white mt-2 px-4 py-1 rounded-md text-sm transition-colors">
+                                                Unblock
+                                            </button>
+                                        </form>
+
+                                    </td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
-                      <button id="closeModalBlokir" class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-1 rounded-md transition-colors">
-                        Close
-                      </button>
+                        <button id="closeModalBlokir"
+                            class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-1 rounded-md transition-colors">
+                            Close
+                        </button>
                     </div>
-                </div>              
-            </div>            
+                </div>
+            </div>
 
             {% with messages = get_flashed_messages(with_categories = true) %}
-                {% if messages %}
-                    <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
-                        {% for category, message in messages %}
-                            <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
-                                <p>{{ message }}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            {% if messages %}
+            <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                {% for category, message in messages %}
+                <div class="mt-3 p-3 bg-green-500 text-white rounded-md">
+                    <p>{{ message }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% endwith %}
 
             <div class="overflow-x-auto mt-4">
@@ -186,31 +191,34 @@
                         </thead>
                         <tbody>
                             {% if not data_user %}
-                                <tr>
-                                    <td class="px-2 py-2 text-center" colspan="4">No Data</td>
-                                </tr>
+                            <tr>
+                                <td class="px-2 py-2 text-center" colspan="4">No Data</td>
+                            </tr>
                             {% else %}
-                                {% for data_user in data_user %}
-                                    <tr class="border-t">
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.address }}</td>
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.hostname }}</td>
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.status }}</td>
-                                        <td class="px-2 py-2 text-left">
-                                            <form id="delete-form-{{ data_user.mac_address }}" action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}" method="POST">
-                                                <button type="button" onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
-                                                    class="{% if data_user.address == Empty %} bg-red-600 hover:bg-red-700 {% else %}  bg-gray-600 hover:bg-gray-700 {% endif %} text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto"
-                                                    {% if data_user.address == 'Empty' %} disabled {% endif %}>
-                                                    Block
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
+                            {% for data_user in data_user %}
+                            <tr class="border-t">
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.address }}</td>
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.hostname }}</td>
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.status }}</td>
+                                <td class="px-2 py-2 text-left">
+                                    <form id="delete-form-{{ data_user.mac_address }}"
+                                        action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}"
+                                        method="POST">
+                                        <button type="button"
+                                            onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
+                                            class="{% if data_user.address == Empty %} bg-red-600 hover:bg-red-700 {% else %}  bg-gray-600 hover:bg-gray-700 {% endif %} text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto"
+                                            {% if data_user.address=='Empty' %} disabled {% endif %}>
+                                            Block
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% endif %}
                         </tbody>
                     </table>
                 </div>
-            </div>     
+            </div>
         </div>
     </div>
 
@@ -288,7 +296,7 @@
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Save',
-                cancelButtonText: 'Tutup',
+                cancelButtonText: 'Close',
                 confirmButtonColor: '#43A047', // amber-500
                 cancelButtonColor: '#ef4444', // red-500
                 preConfirm: () => {
@@ -303,37 +311,63 @@
                         method: "POST",
                         body: formData,
                     })
-                    .then(response => response.json()) 
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Success", "Wireless Successfully added", "success")
-                            .then(() => location.reload());
-                        } else {
-                            Swal.fire("Error", data.error || "Failed", "error");
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire("Error", "Server Unresponsive", "error");
-                    });
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'success',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Success',
+                                    text: 'Wireless Added Successfully!',
+                                    confirmButtonColor: '#FFCA28'
+                                    }).then(() => location.reload());
+                            } else {
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'error',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Failed',
+                                    text: 'Fail to Add Wireless Interface',
+                                    confirmButtonColor: '#FFCA28'
+                                    });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'error',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Failed',
+                                    text: 'Server Unresponsive',
+                                    confirmButtonColor: '#FFCA28'
+                                    });
+                        });
                 }
             });
         });
 
         // Buat Daftar Blokir User
         document.getElementById("openModalBlokir").addEventListener("click", () => {
-        document.getElementById("modalBlokir").classList.remove("hidden");
+            document.getElementById("modalBlokir").classList.remove("hidden");
         });
 
         document.getElementById("closeModalBlokir").addEventListener("click", () => {
-        document.getElementById("modalBlokir").classList.add("hidden");
+            document.getElementById("modalBlokir").classList.add("hidden");
         });
 
         window.addEventListener("click", (e) => {
-        if (e.target === document.getElementById("modalBlokir")) {
-            document.getElementById("modalBlokir").classList.add("hidden");
-        }
+            if (e.target === document.getElementById("modalBlokir")) {
+                document.getElementById("modalBlokir").classList.add("hidden");
+            }
         });
-        
+
         function deleteUser(index) {
             window.currentBlockUser.splice(index, 1); // hapus dari array lokal
             document.getElementById('openModalBlokir').click(); // buka ulang Swal
@@ -354,33 +388,59 @@
                 cancelButtonText: "Cancel"
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/delete_wireless/${mac_address}`, { 
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                hostname: hostname
-                            })
+                    fetch(`/delete_wireless/${mac_address}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            hostname: hostname
                         })
+                    })
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire("Success", data.success, "success")
-                                    .then(() => location.reload()); // Reload halaman setelah sukses
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'success',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Success',
+                                    text: 'User Deleted Successfully',
+                                    confirmButtonColor: '#FFCA28'
+                                    }).then(() => location.reload()); // Reload halaman setelah sukses
                             } else {
-                                Swal.fire("Error", data.error, "error"); // Tampilkan pesan error dari Flask
+                                Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'error',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Error',
+                                    text: 'Cannot Delete Users',
+                                    confirmButtonColor: '#FFCA28'
+                                    }); // Tampilkan pesan error dari Flask
                             }
                         })
                         .catch(() => {
-                            Swal.fire("Error", "Server Unresponsive", "error");
+                            Swal.fire({
+                                    fontFamily: "Inter",
+                                    fontColor: "#FFFFFF",
+                                    icon: 'error',
+                                    background: '#3f3f46',
+                                    color: '#ffffff',
+                                    title: 'Failed',
+                                    text: 'Server Unresponsive',
+                                    confirmButtonColor: '#FFCA28'
+                                    });
                         });
                 }
             });
         }
 
         // Buat Sweet Alert Unblock User
-        document.getElementById('unblock').addEventListener('click', function(e) {
+        document.getElementById('unblock').addEventListener('click', function (e) {
             e.preventDefault();
 
             const form = document.getElementById('unblockForm');
@@ -390,46 +450,46 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                if (!data.success) {
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if (!data.success) {
+                        Swal.fire({
+                            fontFamily: "Inter",
+                            icon: 'error',
+                            background: '#3f3f46',
+                            color: '#ffffff',
+                            title: 'Error',
+                            text: data.error,
+                            confirmButtonColor: '#FFCA28'
+                        });
+                    } else {
+                        Swal.fire({
+                            fontFamily: "Inter",
+                            icon: 'success',
+                            background: '#3f3f46',
+                            color: '#ffffff',
+                            title: data.message,
+                            confirmButtonColor: '#FFCA28'
+                        })
+                            .then(() => location.reload());
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         fontFamily: "Inter",
                         icon: 'error',
                         background: '#3f3f46',
                         color: '#ffffff',
-                        title: 'Error',
-                        text: data.error,
+                        title: 'Connection Error',
+                        text: 'Server Unresponsive',
                         confirmButtonColor: '#FFCA28'
                     });
-                } else {
-                    Swal.fire({
-                        fontFamily: "Inter",
-                        icon: 'success',
-                        background: '#3f3f46',
-                        color: '#ffffff',
-                        title: data.message,
-                        confirmButtonColor: '#FFCA28'
-                    })
-                    .then(() => location.reload());
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    fontFamily: "Inter",
-                    icon: 'error',
-                    background: '#3f3f46',
-                    color: '#ffffff',
-                    title: 'Connection Error',
-                    text: 'Server Unresponsive',
-                    confirmButtonColor: '#FFCA28'
                 });
-            });
         });
-    
+
         // Buat 
-        document.getElementById('guestForm').addEventListener('submit', function(e) {
+        document.getElementById('guestForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(this)
 
@@ -437,45 +497,46 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                if (!data.success) {
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if (!data.success) {
+                        Swal.fire({
+                            fontFamily: "Inter",
+                            icon: 'error',
+                            background: '#3f3f46',
+                            color: '#ffffff',
+                            title: 'Error',
+                            text: data.error,
+                            confirmButtonColor: '#FFCA28'
+                        });
+                    } else {
+                        Swal.fire({
+                            fontFamily: "Inter",
+                            icon: 'success',
+                            background: '#3f3f46',
+                            color: '#ffffff',
+                            title: data.message,
+                            confirmButtonColor: '#FFCA28'
+                        })
+                            .then(() => location.reload());
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         fontFamily: "Inter",
                         icon: 'error',
                         background: '#3f3f46',
                         color: '#ffffff',
-                        title: 'Error',
-                        text: data.error,
+                        title: 'Connection Error',
+                        text: 'Server Unresponsive',
                         confirmButtonColor: '#FFCA28'
                     });
-                } else {
-                    Swal.fire({
-                        fontFamily: "Inter",
-                        icon: 'success',
-                        background: '#3f3f46',
-                        color: '#ffffff',
-                        title: data.message,
-                        confirmButtonColor: '#FFCA28'
-                    })
-                    .then(() => location.reload());
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    fontFamily: "Inter",
-                    icon: 'error',
-                    background: '#3f3f46',
-                    color: '#ffffff',
-                    title: 'Connection Error',
-                    text: 'Server Unresponsive',
-                    confirmButtonColor: '#FFCA28'
                 });
-            });
         });
 
     </script>
-    
+
 </body>
+
 </html>
