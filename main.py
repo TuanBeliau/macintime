@@ -68,7 +68,7 @@ def login() :
     return render_template("login.html", error=error, berhasil=berhasil)
 
 # CEK BISA ENGGAK NYA
-@app.route("/dashboard", methods=["GET"])
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
@@ -85,15 +85,14 @@ def dashboard():
     ssid = None
 
     try:
-        stdin, stdout, stderr = ssh.exec_command("/interface wireless print detail")
+        stdin, stdout, stderr = ssh.exec_command('/interface wireless print detail where name="wlan1" disabled=no')
         output = stdout.read().decode()
 
         # Untuk Ambil SSID dan Password
-        cek_wireless = re.search(r'wpa-pre-shared-key="([^"]+)".*?ssid="([^"]+)"', output, re.DOTALL)
+        cek_wireless = re.search(r'ssid="([^"]+)"', output, re.DOTALL)
 
         if cek_wireless :
-            password = cek_wireless.group(1)
-            ssid = cek_wireless.group(2)
+            cek_wireless = cek_wireless.group(1)
 
             stdin, stdout, stderr = ssh.exec_command("/tool speed-test address=speedtest.telkom.net.id")
             output = stdout.read().decode()
@@ -110,7 +109,16 @@ def dashboard():
     except Exception as e:
         return jsonify({'success': False, 'error':str(e)})
 
-    return render_template("dashboard.html", password=password, ssid=ssid, speedtest=speedtest)
+    if request.method == "POST":
+        action = request.form['action']
+
+        if action == "Disable":
+            stdin, stdout, stderr = ssh.exec_command('/interface wireless set [find where name="wlan1"] disabled=yes')
+
+        if action == "Enable":
+            stdin, stdout, stderr = ssh.exec_command('/interface wireless set [find where name="wlan1"] disabled=no')
+
+    return render_template("dashboard.html", cek_wireless=cek_wireless, speedtest=speedtest)
 
 # -------------------------------------------
 
@@ -203,10 +211,10 @@ def wireless():
 
         if pattern:
             for hostname, mac_address in pattern:
-                user_block = [{
+                user_block.append({
                     "hostname": hostname,
                     "mac_address": mac_address,
-                }]
+                })
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}) 
@@ -255,7 +263,7 @@ def wireless():
 
     # Buat cek udah ada vlan 
     try:
-        stdin, stdout, stderr = ssh.exec_command('/interface wireless print detail where ssid="GUEST_WIFI" disabled=yes')
+        stdin, stdout, stderr = ssh.exec_command('/interface wireless print detail where ssid="GUEST_WIFI" disabled=no')
         pattern = re.search(r'name="([\w\d]+)"', stdout.read().decode())
 
         cek_vlan = None
@@ -282,8 +290,13 @@ def wireless():
             name = request.form["name"] 
             password = request.form["password"]
             ip_address = "192.168.10.1/24" 
-            download = request.form['download']
-            upload = request.form['upload']
+            upload = None
+            download=None
+
+            if request.form['download']:
+                download = request.form['download']
+            if request.form['upload']:
+                upload = request.form['upload']
 
             pool_range = int(request.form["pool_range"])
 
@@ -294,14 +307,14 @@ def wireless():
 
             # Cek interface wlan1
             try:
-                stdin, stdout, stderr = ssh.exec_command("/interface wireless find where disabled=yes")
+                stdin, stdout, stderr = ssh.exec_command("/interface wireless print where disabled=yes")
                 output = stdout.read().decode()
 
                 if output :
                     interface_wlan =[line.split()[1] for line in output.splitlines() if "wlan" in line]
 
                     if interface_wlan:
-                        stdin, stdout, stderr = ssh.exec_command(f"/interface wireless set enable {interface_wlan[0]}")
+                        stdin, stdout, stderr = ssh.exec_command(f'/interface wireless set [find where name="wlan1"] disabled=no')
             
             except Exception as e:
                 return jsonify({"Error_activatingWlan1": {e}})
@@ -317,7 +330,7 @@ def wireless():
 
                 if gateway not in matches:
                     try:
-                        stdin, stdout, stderr = ssh.exec_command(f"/ip address add address={gateway} interface=wlan1")
+                        stdin, stdout, stderr = ssh.exec_command(f"/ip address add address={ip_address} interface=wlan1")
                         error_addIP = stderr.read().decode()
 
                         if error_addIP:
@@ -379,13 +392,13 @@ def wireless():
                     pattern = r'name="(security_[\w\d_-]+)"'
                     profiles = re.findall(pattern, output)
 
-                    stdin, stdout, stderr = ssh.exec_command(f'/interface wireless security-profiles set [find where name="{profiles[0]}"] name="{name}" wpa-pre-shared-key={password} wpa2-pre-shared-key={password}')
+                    stdin, stdout, stderr = ssh.exec_command(f'/interface wireless security-profiles set [find where name="{profiles[0]}"] wpa-pre-shared-key={password} wpa2-pre-shared-key={password}')
                     error_security = stderr.read().decode() 
 
                     if error_security:
                         print(profiles[0])
 
-                    stdin, stdout, stderr = ssh.exec_command(f"/interface wireless set [find where interface=wlan1] ssid={name}")
+                    stdin, stdout, stderr = ssh.exec_command(f'/interface wireless set [find where name="wlan1"] ssid={name}')
                     error_ssid = stderr.read().decode()
 
                     if error_ssid:
@@ -398,18 +411,25 @@ def wireless():
                     if error_print:
                         return error_print
                     
-                    pattern = r'address-pool=([\w\d-]+)' 
+                    pattern = r'address-pool=(pool_[\w\d-]+)' 
 
                     address_pool = re.findall(pattern, output, re.DOTALL)
 
-                    if not address_pool:
-                        return output
+                    address_pool = address_pool[0]
                     
                     stdin, stdout, stderr = ssh.exec_command(f'ip pool set [find where name="{address_pool}"] ranges={pool_range}')
                     error_ranges = stderr.read().decode()
 
                     if error_ranges:
                         return error_ranges
+                    
+                    if download and upload :
+                        command_limiter = f"queue simple add name=bandwith_{name} target={base_ip}.0/24 max-limit={download}M/{upload}M"
+                        stdin, stdout, stderr = ssh.exec_command(command_limiter)
+                        if stderr.read().decode():
+                            print(f"Error_queue : {stderr.read().decode()}")
+                    
+                    return redirect(url_for('wireless'))
 
                 else:
                     # Menjalankan command pool
@@ -447,10 +467,13 @@ def wireless():
                             print(f"Error_wireless: {error}")  # Debugging
                             return error  # Menghentikan eksekusi jika ada error
                     
-                    command_limiter = f"queue simple add name=bandwith_{name} target={base_ip}.0 max-limit={download}/{upload}"
-                    stdin, stdout, stderr = ssh.exec_command(command_limiter)
-                    if stderr.read().decode():
-                        print(f"Error_queue : {stderr.read().decode()}")
+                    if download and upload:
+                        command_limiter = f"queue simple add name=bandwith_{name} target={base_ip}.0 max-limit={download}/{upload}"
+                        stdin, stdout, stderr = ssh.exec_command(command_limiter)
+                        if stderr.read().decode():
+                            print(f"Error_queue : {stderr.read().decode()}")
+                    
+                    return redirect(url_for('wireless'))
 
             except Exception as e:
                 return jsonify({"error_cmd": str(e)}), 500
@@ -463,6 +486,7 @@ def wireless():
 
             if pattern:
                 stdin, stdout, stderr = ssh.exec_command('/interface wireless set [find where ssid="GUEST_WIFI"] disabled=no')
+                return redirect(url_for('wireless'))
             else:
                 ip_address = "192.168.20.1/24"
                 base_ip = ip_address.split('/')[0].rsplit('.', 1)[0]  # fix pembagian IP
@@ -471,12 +495,13 @@ def wireless():
 
                 try:
                     commands = [
-                        ("/interface wireless add master-interface=wlan1 name=vap_guest ssid=\"GUEST_WIFI\" vlan-mode=use-tag vlan-id=20", "Failed Make a VAP"),
+                        ("/interface wireless add master-interface=wlan1 name=vap_guest ssid=\"GUEST_WIFI\" vlan-mode=use-tag vlan-id=20 disabled=no", "Failed Make a VAP"),
                         ("/interface vlan add name=vlan_guest interface=vap_guest vlan-id=20", "Failed Make a Vlan"),
                         ("/ip address add address=192.168.20.1/24 interface=vlan_guest", "Failed Make a IP Address"),
                         (f"/ip pool add name=guest_pool ranges={pool_range}", "Failed Make a pool"),
                         (f"/ip dhcp-server add name=dhcp_guest interface=vlan_guest address-pool=guest_pool", "Failed Make a dhcp-server"),
-                        (f"/ip dhcp-server network add address={base_ip}.0/24 gateway={base_ip}.1 dns-server=8.8.8.8", "Failed Make a dhcp-server network")
+                        (f"/ip dhcp-server network add address={base_ip}.0/24 gateway={base_ip}.1 dns-server=8.8.8.8", "Failed Make a dhcp-server network"),
+                        (f"/queue simple add name=bandwith_Guest target={base_ip}.0/24 max-limit=5M/5M", "Failed Make a dhcp-server network")
                     ]
 
                     for command, error_message in commands:
@@ -487,19 +512,20 @@ def wireless():
                             return jsonify({'success': False, 'error': error_message})
 
                     # Semua sukses
-                    return jsonify({'success': True, 'message': 'Berhasil Membuat Wifi Guest'})
-
                 except Exception as e:
                     return jsonify({'success': False, 'error': f'Gagal setup: {str(e)}'})
+                
+                return redirect(url_for('wireless'))
 
 
         if action == "deactivatingGuest":
-            stdin, stdout, stderr = ssh.exec_command('/interface wireless set [find where ssid="GUEST_WIFI] disabled=yes')
+            stdin, stdout, stderr = ssh.exec_command('/interface wireless set [find where ssid="GUEST_WIFI"] disabled=yes')
 
             if stderr.read().decode():
                 return jsonify({'success':False, 'error':'Failed at disabling wireless'})
             
-            return jsonify({'success':True, 'message':'Successully disabling wireless'})
+            return redirect(url_for('wireless'))
+            
     
     return render_template("wireless.html", data_user=data_user, cek_dhcp=cek_dhcp, user_block=user_block, cek_vlan=cek_vlan)
 

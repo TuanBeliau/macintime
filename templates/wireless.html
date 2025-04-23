@@ -195,22 +195,25 @@
                                 <td class="px-2 py-2 text-center" colspan="4">No Data</td>
                             </tr>
                             {% else %}
-                                {% for data_user in data_user %}
-                                    <tr class="border-t">
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.address }}</td>
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.hostname }}</td>
-                                        <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.status }}</td>
-                                        <td class="px-2 py-2 text-left">
-                                            <form id="delete-form-{{ data_user.mac_address }}" action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}" method="POST">
-                                                <button type="button" onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
-                                                    class="{% if data_user.address == Empty %} bg-red-600 hover:bg-red-700 {% else %}  bg-gray-600 hover:bg-gray-700 {% endif %} text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto"
-                                                    {% if data_user.address == 'Empty' %} disabled {% endif %}>
-                                                    Block
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
+                            {% for data_user in data_user %}
+                            <tr class="border-t">
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.address }}</td>
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.hostname }}</td>
+                                <td class="px-2 py-2 text-left whitespace-nowrap">{{ data_user.status }}</td>
+                                <td class="px-2 py-2 text-left">
+                                    <form id="delete-form-{{ data_user.mac_address }}"
+                                        action="{{ url_for('delete_wireless', mac_address=data_user.mac_address) }}"
+                                        method="POST">
+                                        <button type="button"
+                                            onclick="confirmDelete('{{ data_user.mac_address }}', '{{ data_user.hostname }}')"
+                                            class="{% if data_user.address == Empty %} bg-red-600 hover:bg-red-700 {% else %}  bg-gray-600 hover:bg-gray-700 {% endif %} text-white px-3 py-1 rounded-md text-xs sm:text-sm transition-colors w-full sm:w-auto"
+                                            {% if data_user.address=='Empty' %} disabled {% endif %}>
+                                            Block
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% endif %}
                         </tbody>
                     </table>
@@ -277,12 +280,12 @@
                         <div class="flex space-x-4 justify-items-center">
                             <div class="mt-3">
                                 <label for="download" class="block font-normal mb-2 text-white">Maximum Download Speed</label>
-                                <input name="download" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number" required>
+                                <input name="download" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 text-base sm:text-sm focus:outline-none" type="number">
                             </div>
 
                             <div class="mt-3">
                                 <label for="upload" class="block font-normal mb-2 text-white">Maximum Upload Speed</label>
-                                <input name="upload" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 mt-5 text-base sm:text-sm focus:outline-none" type="number" required>
+                                <input name="upload" class="w-full rounded-md bg-white pl-2 text-gray-900 p-2 mt-5 text-base sm:text-sm focus:outline-none" type="number">
                             </div>
                         </div>
 
@@ -310,7 +313,7 @@
                     })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.success) {
+                            if (!data.success) {
                                 Swal.fire({
                                     fontFamily: "Inter",
                                     fontColor: "#FFFFFF",
@@ -338,11 +341,11 @@
                             Swal.fire({
                                     fontFamily: "Inter",
                                     fontColor: "#FFFFFF",
-                                    icon: 'error',
+                                    icon: 'success',
                                     background: '#3f3f46',
                                     color: '#ffffff',
-                                    title: 'Failed',
-                                    text: 'Server Unresponsive',
+                                    title: 'Success',
+                                    text: 'Wireless Successfuly Created',
                                     confirmButtonColor: '#FFCA28'
                                     });
                         });
@@ -482,11 +485,12 @@
                         text: 'Server Unresponsive',
                         confirmButtonColor: '#FFCA28'
                     });
-                });
+                })
+                .then(() => location.reload());;
         });
-    
+
         // Buat 
-        document.getElementById('guestForm').addEventListener('submit', function(e) {
+        document.getElementById('guestForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(this)
 
@@ -530,53 +534,6 @@
                         confirmButtonColor: '#FFCA28'
                     });
                 });
-        });
-
-        // Buat Mati in Guest Mode
-        document.getElementById('guestForm').addEventListener('click', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this)
-
-            fetch("{{ url_for('wireless') }}", {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                if (!data.success) {
-                    Swal.fire({
-                        fontFamily: "Inter",
-                        icon: 'error',
-                        background: '#3f3f46',
-                        color: '#ffffff',
-                        title: 'Error',
-                        text: data.error,
-                        confirmButtonColor: '#FFCA28'
-                    });
-                } else {
-                    Swal.fire({
-                        fontFamily: "Inter",
-                        icon: 'success',
-                        background: '#3f3f46',
-                        color: '#ffffff',
-                        title: data.message,
-                        confirmButtonColor: '#FFCA28'
-                    })
-                    .then(() => location.reload());
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    fontFamily: "Inter",
-                    icon: 'error',
-                    background: '#3f3f46',
-                    color: '#ffffff',
-                    title: 'Connection Error',
-                    text: 'Server Unresponsive',
-                    confirmButtonColor: '#FFCA28'
-                });
-            });
         });
 
     </script>
